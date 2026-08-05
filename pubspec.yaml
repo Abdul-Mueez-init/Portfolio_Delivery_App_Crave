@@ -1,0 +1,42 @@
+name: crave
+description: "Crave — order ahead or book a table at local shops."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Backend
+  supabase_flutter: ^2.5.6
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Fonts (per design.md typography)
+  google_fonts: ^6.2.1
+
+  # Maps (delivery tracking, Phase 5)
+  google_maps_flutter: ^2.7.0
+
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
