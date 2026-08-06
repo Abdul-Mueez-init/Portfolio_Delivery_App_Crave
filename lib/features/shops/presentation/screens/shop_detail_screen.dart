@@ -10,6 +10,9 @@ import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../application/shop_detail_provider.dart';
 import '../../data/models/shop_model.dart';
+import '../widgets/menu_tab.dart';
+import '../../../cart/presentation/widgets/cart_fab.dart';
+import '../../../../core/router/app_router.dart';
 
 class ShopDetailScreen extends ConsumerWidget {
   const ShopDetailScreen({super.key, required this.shopId});
@@ -115,12 +118,12 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
               child: hasBookingTab
                   ? TabBarView(
                       controller: _tabController,
-                      children: const [
-                        _OrderTabPlaceholder(),
-                        _BookingTabPlaceholder(),
+                      children: [
+                        MenuTab(shopId: shop.id),
+                        const _BookingTabPlaceholder(),
                       ],
                     )
-                  : const _OrderTabPlaceholder(),
+                  : MenuTab(shopId: shop.id),
             ),
           ],
         ),
@@ -134,6 +137,12 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
               onTap: () => context.pop(),
             ),
           ),
+        ),
+        // CartFab renders its own Positioned internally (bottom-fixed,
+        // per menu_updated's floating cart bar) — must sit directly in
+        // this Stack's children, not wrapped in Align/Padding/etc.
+        CartFab(
+          onTap: () => context.push(AppRoutes.cart),
         ),
       ],
     );
@@ -289,22 +298,6 @@ class _ShopInfoCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Real menu fetch + item list lands in Phase 5 (PLAN.md). This is a
-/// deliberately honest placeholder, not a fake menu.
-class _OrderTabPlaceholder extends StatelessWidget {
-  const _OrderTabPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const EmptyState(
-      icon: Icons.restaurant_menu_rounded,
-      title: 'Menu opens next phase',
-      message:
-          'Browsing the menu and adding items to cart is wired up in Phase 5.',
     );
   }
 }

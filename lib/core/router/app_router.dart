@@ -13,6 +13,8 @@ import 'placeholder_screens.dart';
 import '../../features/shops/presentation/screens/home_screen.dart';
 import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/auth/presentation/screens/role_picker_screen.dart';
+import '../../features/cart/presentation/screens/cart_screen.dart';
+import '../../features/orders/presentation/screens/fulfillment_selection_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -21,6 +23,8 @@ abstract class AppRoutes {
   static const signup = '/signup';
   static const customerHome = '/home';
   static const shopDetail = '/shop'; // used as '/shop/:shopId'
+  static const cart = '/cart';
+  static const fulfillment = '/fulfillment';
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const chooseRole = '/choose-role';
@@ -97,6 +101,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final shopId = state.pathParameters['shopId']!;
           return ShopDetailScreen(shopId: shopId);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.cart,
+        builder: (context, state) => const CartScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.fulfillment,
+        builder: (context, state) => const FulfillmentSelectionScreen(),
       ),
       GoRoute(
         path: AppRoutes.ownerDashboard,
