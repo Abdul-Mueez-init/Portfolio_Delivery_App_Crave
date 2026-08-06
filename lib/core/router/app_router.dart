@@ -10,6 +10,8 @@ import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import 'placeholder_screens.dart';
+import '../../features/shops/presentation/screens/home_screen.dart';
+import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/auth/presentation/screens/role_picker_screen.dart';
 
 abstract class AppRoutes {
@@ -18,6 +20,7 @@ abstract class AppRoutes {
   static const login = '/login';
   static const signup = '/signup';
   static const customerHome = '/home';
+  static const shopDetail = '/shop'; // used as '/shop/:shopId'
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const chooseRole = '/choose-role';
@@ -85,8 +88,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           path: AppRoutes.signup,
           builder: (context, state) => const SignupScreen()),
       GoRoute(
-        path: AppRoutes.customerHome,
-        builder: (context, state) => const CustomerHomePlaceholder(),
+        path: '${AppRoutes.shopDetail}/:shopId',
+        builder: (context, state) {
+          final shopId = state.pathParameters['shopId']!;
+          return ShopDetailScreen(shopId: shopId);
+        },
       ),
       GoRoute(
         path: AppRoutes.ownerDashboard,
