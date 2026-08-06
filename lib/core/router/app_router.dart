@@ -88,6 +88,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           path: AppRoutes.signup,
           builder: (context, state) => const SignupScreen()),
       GoRoute(
+        path: AppRoutes.customerHome,
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
         path: '${AppRoutes.shopDetail}/:shopId',
         builder: (context, state) {
           final shopId = state.pathParameters['shopId']!;
