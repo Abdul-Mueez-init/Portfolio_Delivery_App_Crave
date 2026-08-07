@@ -15,6 +15,7 @@ import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/auth/presentation/screens/role_picker_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/orders/presentation/screens/fulfillment_selection_screen.dart';
+import '../../features/bookings/presentation/screens/booking_confirmation_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -25,6 +26,8 @@ abstract class AppRoutes {
   static const shopDetail = '/shop'; // used as '/shop/:shopId'
   static const cart = '/cart';
   static const fulfillment = '/fulfillment';
+  static const bookingConfirmation =
+      '/booking-confirmation'; // used as '/booking-confirmation/:bookingId'
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const chooseRole = '/choose-role';
@@ -109,6 +112,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.fulfillment,
         builder: (context, state) => const FulfillmentSelectionScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.bookingConfirmation}/:bookingId',
+        builder: (context, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          return BookingConfirmationScreen(bookingId: bookingId);
+        },
       ),
       GoRoute(
         path: AppRoutes.ownerDashboard,

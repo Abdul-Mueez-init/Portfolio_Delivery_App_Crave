@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../application/shop_detail_provider.dart';
@@ -13,6 +12,7 @@ import '../../data/models/shop_model.dart';
 import '../widgets/menu_tab.dart';
 import '../../../cart/presentation/widgets/cart_fab.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../bookings/presentation/widgets/booking_tab.dart';
 
 class ShopDetailScreen extends ConsumerWidget {
   const ShopDetailScreen({super.key, required this.shopId});
@@ -120,7 +120,7 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
                       controller: _tabController,
                       children: [
                         MenuTab(shopId: shop.id),
-                        const _BookingTabPlaceholder(),
+                        BookingTab(shopId: shop.id, shopName: shop.name),
                       ],
                     )
                   : MenuTab(shopId: shop.id),
@@ -298,20 +298,6 @@ class _ShopInfoCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Real time-slot picker + booking flow lands in Phase 6 (PLAN.md).
-class _BookingTabPlaceholder extends StatelessWidget {
-  const _BookingTabPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const EmptyState(
-      icon: Icons.event_seat_rounded,
-      title: 'Table booking opens next phase',
-      message: 'Picking a party size and time slot is wired up in Phase 6.',
     );
   }
 }
