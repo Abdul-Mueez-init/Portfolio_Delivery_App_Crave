@@ -20,6 +20,8 @@ import '../../features/orders/presentation/screens/order_tracking_screen.dart';
 import '../../features/bookings/presentation/screens/booking_confirmation_screen.dart';
 import '../../features/activity/presentation/screens/activity_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/shops/presentation/screens/shop_onboarding_screen.dart';
+import '../../features/shops/presentation/screens/shop_settings_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -39,6 +41,13 @@ abstract class AppRoutes {
   static const profile = '/profile';
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
+  static const ownerOrderQueue = '/owner/orders';
+  static const ownerBookingCalendar = '/owner/bookings';
+  static const ownerMenuManagement = '/owner/menu';
+  // Wired next batch, alongside menu_item_form_screen.dart. extra:
+  // MenuItemModel? (null = add mode, non-null = edit mode).
+  static const ownerMenuItemForm = '/owner/menu/item-form';
+  static const ownerShopSettings = '/owner/settings';
   static const chooseRole = '/choose-role';
 
   static const publicRoutes = {splash, onboarding, login, signup};
@@ -75,10 +84,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.login;
       }
 
-      // Logged in but sitting on an auth screen — this is the case right
-      // after a Google OAuth redirect lands back in the app. Funnel
-      // through Splash, which knows how to fetch role / ensure a
-      // profile exists / route on from there.
       final onAuthScreen = {
         AppRoutes.onboarding,
         AppRoutes.login,
@@ -148,13 +153,34 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.profile,
         builder: (context, state) => const ProfileScreen(),
       ),
+      // --- Owner routes ---
       GoRoute(
+        // Real screen replaces this placeholder next batch.
         path: AppRoutes.ownerDashboard,
         builder: (context, state) => const OwnerDashboardPlaceholder(),
       ),
       GoRoute(
         path: AppRoutes.shopOnboarding,
-        builder: (context, state) => const ShopOnboardingPlaceholder(),
+        builder: (context, state) => const ShopOnboardingScreen(),
+      ),
+      GoRoute(
+        // Real screen replaces this placeholder next batch.
+        path: AppRoutes.ownerOrderQueue,
+        builder: (context, state) => const OrderQueuePlaceholder(),
+      ),
+      GoRoute(
+        // Real screen replaces this placeholder next batch.
+        path: AppRoutes.ownerBookingCalendar,
+        builder: (context, state) => const BookingCalendarPlaceholder(),
+      ),
+      GoRoute(
+        // Real screen replaces this placeholder next batch.
+        path: AppRoutes.ownerMenuManagement,
+        builder: (context, state) => const MenuManagementPlaceholder(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerShopSettings,
+        builder: (context, state) => const ShopSettingsScreen(),
       ),
       GoRoute(
           path: AppRoutes.chooseRole,

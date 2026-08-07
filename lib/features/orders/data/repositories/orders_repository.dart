@@ -165,4 +165,82 @@ class OrdersRepository {
     if ((rows as List).isEmpty) return null;
     return fetchOrderById(orderId);
   }
+
+  /// Owner-side: every order for [shopId], newest first, items joined
+  /// in — Order Queue needs item names/qty for each card's "3 Items"
+  /// summary (design.md screen 17). No shops join here — the owner
+  /// already knows which shop they're viewing.
+  Future<List<OrderModel>> fetchShopOrders(String shopId) async {
+    final rows = await _client
+        .from('orders')
+        .select('*, order_items(*, menu_items(name, image_url))')
+        .eq('shop_id', shopId)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((row) => OrderModel.fromJoinedMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Realtime Order Queue — architecture.md §4, same re-fetch-on-change
+  /// pattern as watchOrder (never merges partial payloads), filtered by
+  /// shop_id instead of id.
+  Stream<List<OrderModel>> watchShopOrders(String shopId) async* {
+    yield await fetchShopOrders(shopId);
+
+    final changes =
+        _client.from('orders').stream(primaryKey: ['id']).eq('shop_id', shopId);
+
+    await for (final _ in changes) {
+      yield await fetchShopOrders(shopId);
+    }
+  }
+
+  /// Owner's Accept action — rules.md §2: placed -> confirmed. Scoped
+  /// to status='placed' so a stale double-tap (or a customer who
+  /// cancelled first) is a no-op, not a silent override.
+  Future<OrderModel?> acceptOrder(String orderId) async {
+    final rows = await _client
+        .from('orders')
+        .update({'status': 'confirmed'})
+        .eq('id', orderId)
+        .eq('status', 'placed')
+        .select();
+    if ((rows as List).isEmpty) return null;
+    return fetchOrderById(orderId);
+  }
+
+  /// Owner's Reject action — rules.md §2/§4: placed -> cancelled, plus
+  /// the refund path. Payment is simulated (see class doc comment), so
+  /// "refund" for MVP is writing payment_status='refunded' in the same
+  /// update — there's no real Stripe refund call yet. When real Stripe
+  /// lands, this is the method that grows a refund API call.
+  Future<OrderModel?> rejectOrder(String orderId) async {
+    final rows = await _client
+        .from('orders')
+        .update({'status': 'cancelled', 'payment_status': 'refunded'})
+        .eq('id', orderId)
+        .eq('status', 'placed')
+        .select();
+    if ((rows as List).isEmpty) return null;
+    return fetchOrderById(orderId);
+  }
+
+  /// Owner's forward status advances (rules.md §2): confirmed->preparing,
+  /// preparing->ready/out_for_delivery, ready/out_for_delivery->completed.
+  /// [expectedCurrentStatus] guards against a stale UI advancing an order
+  /// that already moved — same no-op-if-mismatched pattern as above.
+  Future<OrderModel?> advanceOrderStatus({
+    required String orderId,
+    required OrderStatus expectedCurrentStatus,
+    required OrderStatus nextStatus,
+  }) async {
+    final rows = await _client
+        .from('orders')
+        .update({'status': nextStatus.toDb()})
+        .eq('id', orderId)
+        .eq('status', expectedCurrentStatus.toDb())
+        .select();
+    if ((rows as List).isEmpty) return null;
+    return fetchOrderById(orderId);
+  }
 }

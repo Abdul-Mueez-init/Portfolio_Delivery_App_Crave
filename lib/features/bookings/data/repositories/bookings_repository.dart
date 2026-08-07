@@ -90,6 +90,62 @@ class BookingsRepository {
     return BookingModel.fromJoinedMap(row);
   }
 
+  /// Owner-side: bookings for [shopId] on [date]'s local calendar day,
+  /// joined with slot time — Booking Calendar groups rows by slot_time
+  /// (design.md screen 18), same join shape as fetchTimeSlotsForDate
+  /// just from the bookings side. `time_slots!inner` so the date-range
+  /// filter on the joined table actually restricts rows (a plain join
+  /// would let the filter silently no-op).
+  Future<List<BookingModel>> fetchShopBookings({
+    required String shopId,
+    required DateTime date,
+  }) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final rows = await _client
+        .from('bookings')
+        .select('*, shops(name, cover_image_url), time_slots!inner(slot_time)')
+        .eq('shop_id', shopId)
+        .gte('time_slots.slot_time', startOfDay.toUtc().toIso8601String())
+        .lt('time_slots.slot_time', endOfDay.toUtc().toIso8601String())
+        .order('created_at', ascending: false);
+
+    return (rows as List)
+        .map((row) => BookingModel.fromJoinedMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Owner's confirm action — rules.md §3: pending -> confirmed. Scoped
+  /// to status='pending' so a stale double-tap is a no-op.
+  Future<BookingModel?> confirmBooking(String bookingId) async {
+    final rows = await _client
+        .from('bookings')
+        .update({'status': 'confirmed'})
+        .eq('id', bookingId)
+        .eq('status', 'pending')
+        .select();
+    if ((rows as List).isEmpty) return null;
+    return fetchBookingById(bookingId);
+  }
+
+  /// Owner assigns a table label (e.g. "Table 4") — ERD.md's
+  /// assigned_table_label. Plain field write, independent of confirm,
+  /// since the design shows Confirm and Assign Table as separate taps.
+  Future<BookingModel> assignTable({
+    required String bookingId,
+    required String tableLabel,
+  }) async {
+    final row = await _client
+        .from('bookings')
+        .update({'assigned_table_label': tableLabel})
+        .eq('id', bookingId)
+        .select()
+        .single();
+    return BookingModel.fromMap(row);
+  }
+
+  /// Fetches every booking for the signed-in customer, newest first.
   /// Fetches every booking for the signed-in customer, newest first.
   ///
   /// Used by the Activity → Bookings tab. Joins the shop and time slot

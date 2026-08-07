@@ -48,3 +48,29 @@ class ShopOnboardingPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) =>
       const _PlaceholderScaffold(title: 'Shop Onboarding');
 }
+
+/// Temporary — replaced by the real Order Queue screen in the next
+/// batch. Kept (not deleted) so this batch's router/nav wiring has
+/// somewhere real to land in the meantime.
+class OrderQueuePlaceholder extends StatelessWidget {
+  const OrderQueuePlaceholder({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const _PlaceholderScaffold(title: 'Order Queue');
+}
+
+/// Temporary — replaced by the real Booking Calendar screen next batch.
+class BookingCalendarPlaceholder extends StatelessWidget {
+  const BookingCalendarPlaceholder({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const _PlaceholderScaffold(title: 'Booking Calendar');
+}
+
+/// Temporary — replaced by the real Menu Management screen next batch.
+class MenuManagementPlaceholder extends StatelessWidget {
+  const MenuManagementPlaceholder({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const _PlaceholderScaffold(title: 'Menu Management');
+}
