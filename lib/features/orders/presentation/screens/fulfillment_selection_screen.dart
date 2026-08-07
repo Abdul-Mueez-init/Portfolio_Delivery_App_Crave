@@ -10,6 +10,7 @@ import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../cart/application/cart_provider.dart';
 import '../../../shops/application/shop_detail_provider.dart';
+import '../../../../core/router/app_router.dart';
 import '../../application/fulfillment_provider.dart';
 import '../../data/models/fulfillment_type.dart';
 
@@ -95,14 +96,7 @@ class FulfillmentSelectionScreen extends ConsumerWidget {
               CustomButton(
                 label: 'Continue',
                 onPressed: fulfillment.canContinue
-                    ? () {
-                        // Checkout screen lands next batch.
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Checkout screen lands in the next batch')),
-                        );
-                      }
+                    ? () => context.push(AppRoutes.checkout)
                     : null,
               ),
             ],

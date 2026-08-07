@@ -15,7 +15,11 @@ import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/auth/presentation/screens/role_picker_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/orders/presentation/screens/fulfillment_selection_screen.dart';
+import '../../features/orders/presentation/screens/checkout_screen.dart';
+import '../../features/orders/presentation/screens/order_tracking_screen.dart';
 import '../../features/bookings/presentation/screens/booking_confirmation_screen.dart';
+import '../../features/activity/presentation/screens/activity_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -26,8 +30,13 @@ abstract class AppRoutes {
   static const shopDetail = '/shop'; // used as '/shop/:shopId'
   static const cart = '/cart';
   static const fulfillment = '/fulfillment';
+  static const checkout = '/checkout';
+  static const orderTracking =
+      '/order-tracking'; // used as '/order-tracking/:orderId'
   static const bookingConfirmation =
       '/booking-confirmation'; // used as '/booking-confirmation/:bookingId'
+  static const activity = '/activity';
+  static const profile = '/profile';
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const chooseRole = '/choose-role';
@@ -114,11 +123,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const FulfillmentSelectionScreen(),
       ),
       GoRoute(
+        path: AppRoutes.checkout,
+        builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.orderTracking}/:orderId',
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId']!;
+          return OrderTrackingScreen(orderId: orderId);
+        },
+      ),
+      GoRoute(
         path: '${AppRoutes.bookingConfirmation}/:bookingId',
         builder: (context, state) {
           final bookingId = state.pathParameters['bookingId']!;
           return BookingConfirmationScreen(bookingId: bookingId);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.activity,
+        builder: (context, state) => const ActivityScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: AppRoutes.ownerDashboard,

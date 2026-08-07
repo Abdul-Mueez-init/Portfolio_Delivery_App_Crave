@@ -43,3 +43,15 @@ final bookingDetailProvider = FutureProvider.autoDispose
   final repo = ref.watch(bookingsRepositoryProvider);
   return repo.fetchBookingById(bookingId);
 });
+final customerBookingsProvider =
+    FutureProvider<List<BookingModel>>((ref) async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    return [];
+  }
+
+  final repo = ref.watch(bookingsRepositoryProvider);
+
+  return repo.fetchBookingsForCustomer(user.id);
+});
