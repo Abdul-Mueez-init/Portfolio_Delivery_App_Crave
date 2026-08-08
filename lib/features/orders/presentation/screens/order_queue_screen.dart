@@ -66,10 +66,12 @@ class _OrderQueueBody extends ConsumerWidget {
 
     return ordersAsync.when(
       loading: () => const LoadingIndicator(),
-      error: (e, s) => ErrorView(
-        message: "We couldn't load your orders.",
-        onRetry: () => ref.invalidate(shopOrdersProvider(shopId)),
-      ),
+      error: (e, s) {
+        return ErrorView(
+          message: "We couldn't load your orders.",
+          onRetry: () => ref.invalidate(shopOrdersProvider(shopId)),
+        );
+      },
       data: (orders) {
         // FLAGGED SCOPE DECISION: completed/cancelled orders need no
         // owner action, so they're left out of the Queue entirely — an

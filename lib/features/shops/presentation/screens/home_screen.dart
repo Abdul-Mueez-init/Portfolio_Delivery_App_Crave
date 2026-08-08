@@ -141,14 +141,21 @@ class _TopBar extends StatelessWidget {
           Text('Crave',
               style: AppTextStyles.headlineLgMobile
                   .copyWith(color: AppColors.primary)),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-                color: AppColors.surfaceVariant, shape: BoxShape.circle),
-            // TODO(Phase 7): navigate to Profile once it exists.
-            child: const Icon(Icons.person_outline,
-                color: AppColors.onSurfaceVariant),
+          InkWell(
+            onTap: () => context.go(AppRoutes.profile),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_outline,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ),
         ],
       ),

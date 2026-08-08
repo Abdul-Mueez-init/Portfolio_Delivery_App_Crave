@@ -26,13 +26,21 @@ class CustomerBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_NavItem>[
-      _NavItem(
-          icon: Icons.home_rounded,
-          label: 'Home',
-          route: AppRoutes.customerHome),
       const _NavItem(
-          icon: Icons.receipt_long_rounded, label: 'Activity', route: null),
-      const _NavItem(icon: Icons.person_rounded, label: 'Profile', route: null),
+        icon: Icons.home_rounded,
+        label: 'Home',
+        route: AppRoutes.customerHome,
+      ),
+      const _NavItem(
+        icon: Icons.receipt_long_rounded,
+        label: 'Activity',
+        route: AppRoutes.activity,
+      ),
+      const _NavItem(
+        icon: Icons.person_rounded,
+        label: 'Profile',
+        route: AppRoutes.profile,
+      ),
     ];
 
     return Container(
@@ -54,17 +62,11 @@ class CustomerBottomNav extends StatelessWidget {
               icon: item.icon,
               label: item.label,
               isActive: isActive,
-              onTap: item.route == null
-                  ? () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content:
-                              Text('${item.label} — coming in a later phase'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      )
-                  : () {
-                      if (!isActive) context.go(item.route!);
-                    },
+              onTap: () {
+                if (!isActive) {
+                  context.go(item.route!);
+                }
+              },
             );
           }),
         ),

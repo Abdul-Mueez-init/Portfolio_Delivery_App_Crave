@@ -13,6 +13,7 @@ import '../../../bookings/application/owner_bookings_provider.dart';
 import '../../../orders/application/owner_orders_provider.dart';
 import '../../application/owner_shop_provider.dart';
 import '../../data/models/shop_model.dart';
+import '../../../auth/application/auth_provider.dart';
 
 /// design.md screen 16 — the owner's landing screen after onboarding.
 /// Greeting + today's counts + quick links into the other 3 owner
@@ -70,7 +71,7 @@ class _DashboardBody extends ConsumerWidget {
         final c = o.createdAt.toLocal();
         return c.year == now.year && c.month == now.month && c.day == now.day;
       }).length,
-      orElse: () => null,
+      orElse: () => 0,
     );
     final todayBookingCount = todayBookingsAsync.maybeWhen(
       data: (bookings) => bookings.length,
@@ -92,10 +93,31 @@ class _DashboardBody extends ConsumerWidget {
                     style: AppTextStyles.headlineMd
                         .copyWith(color: AppColors.primary)),
               ),
-              IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: AppColors.onSurface),
-                onPressed: () => context.push(AppRoutes.ownerShopSettings),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.settings_outlined,
+                      color: AppColors.onSurface,
+                    ),
+                    onPressed: () => context.push(AppRoutes.ownerShopSettings),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: AppColors.onSurface,
+                    ),
+                    tooltip: 'Log out',
+                    onPressed: () async {
+                      await ref.read(authRepositoryProvider).signOut();
+
+                      if (context.mounted) {
+                        context.go(AppRoutes.login);
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),

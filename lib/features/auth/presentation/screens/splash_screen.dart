@@ -6,7 +6,6 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../application/auth_provider.dart';
-import '../../data/models/user_role.dart';
 import '../utils/post_auth_navigation.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
