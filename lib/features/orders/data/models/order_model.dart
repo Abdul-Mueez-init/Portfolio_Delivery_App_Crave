@@ -143,6 +143,7 @@ class OrderModel {
     this.items = const [],
     this.shopName,
     this.shopCoverImageUrl,
+    this.customerName,
   });
 
   final String id;
@@ -163,6 +164,13 @@ class OrderModel {
 
   final String? shopName;
   final String? shopCoverImageUrl;
+
+  /// Owner-side only — populated by OrdersRepository.fetchShopOrders's
+  /// joined select (design.md screen 17's "Customer: Jane Doe" line on
+  /// each Order Queue card). Null on every other fetch path — the
+  /// customer's own fetchOrderById has no reason to join their own name
+  /// back to themselves.
+  final String? customerName;
 
   /// rules.md §2: customer can only cancel while still `placed` or
   /// `confirmed` — once `preparing` starts, food's already being made.
@@ -196,10 +204,13 @@ class OrderModel {
   }
 
   /// Parses a row shaped by OrdersRepository.fetchOrderById's select:
-  /// `'*, shops(name, cover_image_url), order_items(*, menu_items(name, image_url))'`.
+  /// `'*, shops(name, cover_image_url), order_items(*, menu_items(name, image_url))'`
+  /// or by fetchShopOrders's select, which additionally joins
+  /// `users!customer_id(full_name)` for [customerName].
   factory OrderModel.fromJoinedMap(Map<String, dynamic> map) {
     final base = OrderModel.fromMap(map);
     final shop = map['shops'] as Map<String, dynamic>?;
+    final customer = map['users'] as Map<String, dynamic>?;
     final itemRows = (map['order_items'] as List<dynamic>? ?? []);
     return OrderModel(
       id: base.id,
@@ -218,6 +229,7 @@ class OrderModel {
       deliveryLng: base.deliveryLng,
       shopName: shop?['name'] as String?,
       shopCoverImageUrl: shop?['cover_image_url'] as String?,
+      customerName: customer?['full_name'] as String?,
       items: itemRows
           .map((row) =>
               OrderItemModel.fromJoinedMap(row as Map<String, dynamic>))

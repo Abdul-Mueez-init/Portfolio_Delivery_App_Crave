@@ -9,7 +9,6 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
-import 'placeholder_screens.dart';
 import '../../features/shops/presentation/screens/home_screen.dart';
 import '../../features/shops/presentation/screens/shop_detail_screen.dart';
 import '../../features/auth/presentation/screens/role_picker_screen.dart';
@@ -17,11 +16,16 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/orders/presentation/screens/fulfillment_selection_screen.dart';
 import '../../features/orders/presentation/screens/checkout_screen.dart';
 import '../../features/orders/presentation/screens/order_tracking_screen.dart';
+import '../../features/orders/presentation/screens/order_queue_screen.dart';
 import '../../features/bookings/presentation/screens/booking_confirmation_screen.dart';
+import '../../features/bookings/presentation/screens/booking_calendar_screen.dart';
 import '../../features/activity/presentation/screens/activity_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/shops/presentation/screens/shop_onboarding_screen.dart';
 import '../../features/shops/presentation/screens/shop_settings_screen.dart';
+import '../../features/shops/presentation/screens/dashboard_home_screen.dart';
+import '../../features/shops/presentation/screens/menu_management_screen.dart';
+import '../../features/shops/presentation/screens/menu_item_form_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -44,8 +48,7 @@ abstract class AppRoutes {
   static const ownerOrderQueue = '/owner/orders';
   static const ownerBookingCalendar = '/owner/bookings';
   static const ownerMenuManagement = '/owner/menu';
-  // Wired next batch, alongside menu_item_form_screen.dart. extra:
-  // MenuItemModel? (null = add mode, non-null = edit mode).
+  // extra: MenuItemFormArgs (menu_item_form_screen.dart)
   static const ownerMenuItemForm = '/owner/menu/item-form';
   static const ownerShopSettings = '/owner/settings';
   static const chooseRole = '/choose-role';
@@ -155,28 +158,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       // --- Owner routes ---
       GoRoute(
-        // Real screen replaces this placeholder next batch.
         path: AppRoutes.ownerDashboard,
-        builder: (context, state) => const OwnerDashboardPlaceholder(),
+        builder: (context, state) => const DashboardHomeScreen(),
       ),
       GoRoute(
         path: AppRoutes.shopOnboarding,
         builder: (context, state) => const ShopOnboardingScreen(),
       ),
       GoRoute(
-        // Real screen replaces this placeholder next batch.
         path: AppRoutes.ownerOrderQueue,
-        builder: (context, state) => const OrderQueuePlaceholder(),
+        builder: (context, state) => const OrderQueueScreen(),
       ),
       GoRoute(
-        // Real screen replaces this placeholder next batch.
         path: AppRoutes.ownerBookingCalendar,
-        builder: (context, state) => const BookingCalendarPlaceholder(),
+        builder: (context, state) => const BookingCalendarScreen(),
       ),
       GoRoute(
-        // Real screen replaces this placeholder next batch.
         path: AppRoutes.ownerMenuManagement,
-        builder: (context, state) => const MenuManagementPlaceholder(),
+        builder: (context, state) => const MenuManagementScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerMenuItemForm,
+        builder: (context, state) {
+          final args = state.extra as MenuItemFormArgs;
+          return MenuItemFormScreen(args: args);
+        },
       ),
       GoRoute(
         path: AppRoutes.ownerShopSettings,

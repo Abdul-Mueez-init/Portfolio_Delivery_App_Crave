@@ -173,7 +173,8 @@ class OrdersRepository {
   Future<List<OrderModel>> fetchShopOrders(String shopId) async {
     final rows = await _client
         .from('orders')
-        .select('*, order_items(*, menu_items(name, image_url))')
+        .select(
+            '*, order_items(*, menu_items(name, image_url)), users!customer_id(full_name)')
         .eq('shop_id', shopId)
         .order('created_at', ascending: false);
     return (rows as List)
