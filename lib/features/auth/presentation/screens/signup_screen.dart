@@ -28,6 +28,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   UserRole _selectedRole = UserRole.customer;
   bool _isSubmitting = false;
@@ -39,6 +40,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
             fullName: _nameController.text.trim(),
+            phone: _phoneController.text.trim(),
             role: _selectedRole,
           );
       if (!mounted) return;
@@ -188,6 +191,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             (value == null || value.trim().isEmpty)
                                 ? 'Full name is required'
                                 : null,
+                      ),
+                      SizedBox(height: AppSpacing.stackMd),
+                      CustomTextField(
+                        label: 'Phone Number',
+                        hintText: '+92 300 1234567',
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        prefixIcon: Icons.phone_outlined,
                       ),
                       SizedBox(height: AppSpacing.stackMd),
                       CustomTextField(

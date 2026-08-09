@@ -21,6 +21,7 @@ import '../../features/bookings/presentation/screens/booking_confirmation_screen
 import '../../features/bookings/presentation/screens/booking_calendar_screen.dart';
 import '../../features/activity/presentation/screens/activity_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/settings_screen.dart';
 import '../../features/shops/presentation/screens/shop_onboarding_screen.dart';
 import '../../features/shops/presentation/screens/shop_settings_screen.dart';
 import '../../features/shops/presentation/screens/dashboard_home_screen.dart';
@@ -43,6 +44,7 @@ abstract class AppRoutes {
       '/booking-confirmation'; // used as '/booking-confirmation/:bookingId'
   static const activity = '/activity';
   static const profile = '/profile';
+  static const settings = '/settings';
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const ownerOrderQueue = '/owner/orders';
@@ -155,6 +157,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
       ),
       // --- Owner routes ---
       GoRoute(

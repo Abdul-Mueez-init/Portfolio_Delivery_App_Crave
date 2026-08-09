@@ -146,7 +146,6 @@ class BookingsRepository {
   }
 
   /// Fetches every booking for the signed-in customer, newest first.
-  /// Fetches every booking for the signed-in customer, newest first.
   ///
   /// Used by the Activity → Bookings tab. Joins the shop and time slot
   /// so BookingModel.fromJoinedMap() has the same payload shape as
@@ -167,5 +166,78 @@ class BookingsRepository {
           ),
         )
         .toList();
+  }
+
+  // ── Owner Slot Management (Phase F) ─────────────────────────────
+
+  /// Every upcoming slot for [shopId] — not scoped to a single day
+  /// like fetchTimeSlotsForDate, since the owner needs to see/manage
+  /// everything ahead, not just today. This becomes the real,
+  /// ongoing source of bookable slots once an owner starts using it —
+  /// seed.sql's one-time time_slots block becomes optional/demo-only,
+  /// matching architecture.md §10's actual intent (see
+  /// SESSION_HANDOFF_phaseAH_fixes.md Phase F).
+  Future<List<TimeSlotModel>> fetchUpcomingSlotsForShop(String shopId) async {
+    final rows = await _client
+        .from('time_slots')
+        .select()
+        .eq('shop_id', shopId)
+        .gte('slot_time', DateTime.now().toUtc().toIso8601String())
+        .order('slot_time', ascending: true);
+    return (rows as List)
+        .map((row) => TimeSlotModel.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Owner's "+ Add Slot" — real insert into time_slots.
+  /// booked_capacity always starts at 0 and is never set from the
+  /// client — it's server-managed by book_time_slot/cancel_booking
+  /// (architecture.md §11), same as every seed.sql row.
+  Future<TimeSlotModel> createTimeSlot({
+    required String shopId,
+    required DateTime slotTime,
+    required int maxPartyCapacity,
+  }) async {
+    final row = await _client
+        .from('time_slots')
+        .insert({
+          'shop_id': shopId,
+          'slot_time': slotTime.toUtc().toIso8601String(),
+          'max_party_capacity': maxPartyCapacity,
+          'booked_capacity': 0,
+        })
+        .select()
+        .single();
+    return TimeSlotModel.fromMap(row);
+  }
+
+  /// Owner's Edit action — capacity only. slot_time is intentionally
+  /// not editable after creation (a customer may have already booked
+  /// against this exact time); delete + recreate if the time itself
+  /// needs to change.
+  Future<TimeSlotModel> updateTimeSlotCapacity({
+    required String slotId,
+    required int maxPartyCapacity,
+  }) async {
+    final row = await _client
+        .from('time_slots')
+        .update({'max_party_capacity': maxPartyCapacity})
+        .eq('id', slotId)
+        .select()
+        .single();
+    return TimeSlotModel.fromMap(row);
+  }
+
+  /// Owner's delete action. Scoped to booked_capacity = 0 so this can
+  /// never silently orphan an existing booking — deleting a slot with
+  /// active bookings against it is refused server-side, not just
+  /// discouraged in the UI (same "enforce it for real" pattern as the
+  /// booking capacity RPCs).
+  Future<void> deleteTimeSlot(String slotId) async {
+    await _client
+        .from('time_slots')
+        .delete()
+        .eq('id', slotId)
+        .eq('booked_capacity', 0);
   }
 }

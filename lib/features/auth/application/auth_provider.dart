@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/models/user_role.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/models/user_profile_model.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -21,6 +22,17 @@ final authStateChangesProvider = StreamProvider<AuthState>((ref) {
 final currentUserRoleProvider = FutureProvider<UserRole?>((ref) async {
   ref.watch(authStateChangesProvider); // dependency: re-run on auth changes
   return ref.watch(authRepositoryProvider).fetchCurrentUserRole();
+});
+
+/// The signed-in user's real `users.full_name`/`phone` — not the OAuth
+/// metadata fallback. Used by Fulfillment's "Your Details" card and
+/// the Settings screen. `.autoDispose` because both screens are
+/// transient; invalidate manually after a Settings save (see
+/// settings_screen.dart) rather than relying on a stream.
+final currentUserProfileProvider =
+    FutureProvider.autoDispose<UserProfileModel?>((ref) async {
+  ref.watch(authStateChangesProvider);
+  return ref.watch(authRepositoryProvider).fetchCurrentUserProfile();
 });
 
 /// Holds the role chosen on Signup's role picker for the gap between

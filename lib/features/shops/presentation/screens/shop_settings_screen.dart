@@ -157,9 +157,9 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Shop settings saved.')));
       context.pop();
-    } catch (_) {
-      setState(() => _errorMessage =
-          'Something went wrong saving your changes. Please try again.');
+    } catch (e, st) {
+      debugPrint('MenuItemFormScreen._submit failed: $e\n$st');
+      setState(() => _errorMessage = 'Something went wrong: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

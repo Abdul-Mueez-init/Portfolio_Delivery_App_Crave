@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_role.dart';
+import '../models/user_profile_model.dart';
 
 class AuthRepository {
   AuthRepository(this._client);
@@ -33,12 +34,18 @@ class AuthRepository {
     required String password,
     required String fullName,
     required UserRole role,
+    String? phone,
   }) async {
     final response =
         await _client.auth.signUp(email: email, password: password);
     final user = response.user;
     if (user != null && response.session != null) {
-      await _upsertUserProfile(id: user.id, fullName: fullName, role: role);
+      await _upsertUserProfile(
+        id: user.id,
+        fullName: fullName,
+        role: role,
+        phone: phone,
+      );
     }
     return response;
   }
@@ -66,12 +73,45 @@ class AuthRepository {
     required String id,
     required String fullName,
     required UserRole role,
+    String? phone,
   }) {
     return _client.from('users').upsert({
       'id': id,
       'full_name': fullName,
       'role': role.toDb(),
+      if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
     });
+  }
+
+  /// Full profile row for the signed-in user, combined with their auth
+  /// email — used by the Fulfillment "Your Details" card and the
+  /// Settings screen (see SESSION_HANDOFF_phaseAH_fixes.md Phase C/D).
+  Future<UserProfileModel?> fetchCurrentUserProfile() async {
+    final user = currentUser;
+    if (user == null) return null;
+    final row = await _client
+        .from('users')
+        .select('id, full_name, phone, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (row == null) return null;
+    return UserProfileModel.fromMap(row, email: user.email ?? '');
+  }
+
+  /// Settings screen save — name + phone only. Email is intentionally
+  /// left read-only here: changing it goes through Supabase Auth's own
+  /// re-verification flow, a separate feature this batch doesn't scope
+  /// for (see SESSION_HANDOFF_phaseAH_fixes.md Phase D).
+  Future<void> updateProfile({
+    required String fullName,
+    required String phone,
+  }) async {
+    final user = currentUser;
+    if (user == null) return;
+    await _client.from('users').update({
+      'full_name': fullName,
+      'phone': phone.trim().isEmpty ? null : phone.trim(),
+    }).eq('id', user.id);
   }
 
   /// Google sign-in has no role-picker step of its own. Call this right

@@ -55,3 +55,13 @@ final customerBookingsProvider =
 
   return repo.fetchBookingsForCustomer(user.id);
 });
+
+/// Owner Slot Management (Phase F): every upcoming slot for the
+/// owner's shop. autoDispose + family per shopId, same reasoning as
+/// timeSlotsProvider — invalidated after create/edit/delete rather
+/// than kept as a live stream.
+final ownerUpcomingSlotsProvider = FutureProvider.autoDispose
+    .family<List<TimeSlotModel>, String>((ref, shopId) async {
+  final repo = ref.watch(bookingsRepositoryProvider);
+  return repo.fetchUpcomingSlotsForShop(shopId);
+});

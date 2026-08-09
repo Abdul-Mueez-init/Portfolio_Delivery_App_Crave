@@ -130,9 +130,9 @@ class _MenuItemFormScreenState extends ConsumerState<MenuItemFormScreen> {
       ref.invalidate(menuForShopProvider(widget.args.shopId));
       if (!mounted) return;
       context.pop();
-    } catch (_) {
-      setState(() => _errorMessage =
-          'Something went wrong saving this item. Please try again.');
+    } catch (e, st) {
+      debugPrint('MenuItemFormScreen._submit failed: $e\n$st');
+      setState(() => _errorMessage = 'Something went wrong: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
