@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -139,10 +140,12 @@ class _MenuItemCard extends ConsumerWidget {
                     height: 80,
                     child: item.imageUrl.isEmpty
                         ? Container(color: AppColors.surfaceContainerHigh)
-                        : Image.network(
-                            item.imageUrl,
+                        : CachedNetworkImage(
+                            imageUrl: item.imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stack) => Container(
+                            placeholder: (context, url) => Container(
+                                color: AppColors.surfaceContainerHigh),
+                            errorWidget: (context, url, error) => Container(
                                 color: AppColors.surfaceContainerHigh),
                           ),
                   ),

@@ -89,18 +89,35 @@ class FulfillmentSelectionScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.stackSm),
               TextButton.icon(
-                onPressed: () => notifier.useSimulatedCurrentLocation(
-                  shopLat: shop.lat ?? 0,
-                  shopLng: shop.lng ?? 0,
-                ),
-                icon: const Icon(Icons.my_location, size: 20),
-                label: const Text('Use current location'),
+                onPressed: fulfillment.isLocating
+                    ? null
+                    : () => notifier.useCurrentLocation(
+                          shopLat: shop.lat ?? 0,
+                          shopLng: shop.lng ?? 0,
+                        ),
+                icon: fulfillment.isLocating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location, size: 20),
+                label: Text(fulfillment.isLocating
+                    ? 'Getting your location…'
+                    : 'Use current location'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   padding: EdgeInsets.zero,
                   alignment: Alignment.centerLeft,
                 ),
               ),
+              if (fulfillment.locationError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  fulfillment.locationError!,
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                ),
+              ],
               const SizedBox(height: AppSpacing.stackMd),
               const _MapPreview(),
             ],

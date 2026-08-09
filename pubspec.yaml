@@ -2,45 +2,53 @@ name: crave
 description: "Crave — order ahead or book a table at local shops."
 publish_to: 'none'
 version: 1.0.0+1
-
+ 
 environment:
   sdk: '>=3.3.0 <4.0.0'
-
+ 
 dependencies:
   flutter:
     sdk: flutter
-
+ 
   # Backend
   supabase_flutter: ^2.5.6
-
+ 
   # State management
   flutter_riverpod: ^2.5.1
-
+ 
   # Routing
   go_router: ^14.2.0
-
+ 
   # Fonts (per design.md typography)
   google_fonts: ^6.2.1
-
+ 
   # Maps (delivery tracking, Phase 5)
   google_maps_flutter: ^2.7.0
-
+ 
+  # Real GPS fix for "Use current location" (Phase G — replaces the
+  # random-offset simulation in fulfillment_provider.dart)
+  geolocator: ^13.0.2
+ 
   # Environment variables
   flutter_dotenv: ^5.1.0
-
+ 
   flutter_svg: ^2.0.10
-
+ 
   # Image picking for menu item / shop cover uploads (Phase 8)
   image_picker: ^1.1.2
-
+ 
+  # Caches network images across rebuilds/scroll-back/app restart —
+  # Phase H, replaces every Image.network call site
+  cached_network_image: ^3.4.1
+ 
   # Icons
   cupertino_icons: ^1.0.6
-
+ 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-
+ 
 flutter:
   uses-material-design: true
   assets:

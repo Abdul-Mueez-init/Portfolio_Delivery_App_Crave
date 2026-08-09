@@ -1,8 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Phase G: required for geolocator's real GPS fix in
+         fulfillment_provider.dart's useCurrentLocation(). Coarse is
+         requested as a fallback if the user denies fine location. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+ 
     <application
         android:label="crave"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- PLAN.md Phase 0 already calls for generating a Maps API key
+             restricted to this app's SHA-1 + package name. Paste that
+             real key here — this placeholder will not compile the Maps
+             SDK correctly and "Use current location" not working. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDon_mp5UvBOfuDPg2izkE9LIGdIsmqX90"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,7 +47,7 @@
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
-
+ 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
         <intent>
@@ -43,3 +56,4 @@
         </intent>
     </queries>
 </manifest>
+ 

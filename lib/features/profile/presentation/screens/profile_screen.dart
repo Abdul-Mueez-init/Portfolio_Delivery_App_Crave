@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -222,10 +223,14 @@ class _AvatarHeader extends StatelessWidget {
                   child: (avatarUrl == null || avatarUrl!.isEmpty)
                       ? const Icon(Icons.person,
                           size: 48, color: AppColors.secondary)
-                      : Image.network(
-                          avatarUrl!,
+                      : CachedNetworkImage(
+                          imageUrl: avatarUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) => const Icon(
+                          placeholder: (context, url) => const Icon(
+                              Icons.person,
+                              size: 48,
+                              color: AppColors.secondary),
+                          errorWidget: (context, url, error) => const Icon(
                               Icons.person,
                               size: 48,
                               color: AppColors.secondary),
@@ -360,15 +365,25 @@ class _LogOutButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.stackMd + 2),
           alignment: Alignment.center,
+          // Phase H #17: swapped AppColors.primary -> primaryContainer
+          // per the audit's instruction. FLAGGED, not silently decided:
+          // primaryContainer (#FF6B4A) as text/icon color on
+          // surfaceContainerLowest's white background (#FFFFFF)
+          // computes to ~2.8:1 contrast — below WCAG AA's 3:1 floor for
+          // large text/icons (4.5:1 for body text). Visually it reads
+          // as the intended bright coral rather than the darker rust,
+          // but it's a real accessibility regression versus the
+          // previous token, not just a cosmetic swap. Worth a second
+          // look before shipping if accessibility matters for the demo.
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.logout_rounded,
-                  size: 20, color: AppColors.primary),
+                  size: 20, color: AppColors.primaryContainer),
               const SizedBox(width: 8),
               Text('Log Out',
                   style: AppTextStyles.headlineMd
-                      .copyWith(color: AppColors.primary)),
+                      .copyWith(color: AppColors.primaryContainer)),
             ],
           ),
         ),

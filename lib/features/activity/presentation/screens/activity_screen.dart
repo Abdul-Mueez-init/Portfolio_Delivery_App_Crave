@@ -12,6 +12,7 @@ import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../bookings/application/time_slots_provider.dart';
 import '../../../bookings/data/models/booking_model.dart';
+import '../../../cart/application/cart_provider.dart';
 import '../../../orders/application/orders_provider.dart';
 import '../../../orders/data/models/order_model.dart';
 
@@ -131,6 +132,10 @@ class _OrdersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(customerOrdersProvider);
+    // Phase H #15: surface the in-progress cart here too, visually
+    // distinct from real orders below — it's local Riverpod state, not
+    // a DB row, until checkout actually completes.
+    final cart = ref.watch(cartProvider);
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -142,7 +147,7 @@ class _OrdersTab extends ConsumerWidget {
           onRetry: () => ref.invalidate(customerOrdersProvider),
         ),
         data: (orders) {
-          if (orders.isEmpty) {
+          if (orders.isEmpty && cart.isEmpty) {
             return ListView(
               // ListView (not a bare Center) so pull-to-refresh still
               // works on an empty list.
@@ -156,14 +161,73 @@ class _OrdersTab extends ConsumerWidget {
               ],
             );
           }
-          return ListView.separated(
+          return ListView(
             padding: const EdgeInsets.all(AppSpacing.marginMain),
-            itemCount: orders.length,
-            separatorBuilder: (_, __) =>
+            children: [
+              if (!cart.isEmpty) ...[
+                _CurrentCartCard(cart: cart),
                 const SizedBox(height: AppSpacing.stackMd),
-            itemBuilder: (context, index) => _OrderCard(order: orders[index]),
+              ],
+              for (var i = 0; i < orders.length; i++) ...[
+                _OrderCard(order: orders[i]),
+                if (i != orders.length - 1)
+                  const SizedBox(height: AppSpacing.stackMd),
+              ],
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Not a real order — this is the live Riverpod cart, shown so a
+/// customer who backgrounds the app mid-shop can find their way back to
+/// checkout. Deliberately styled differently from `_OrderCard` (dashed
+/// outline, "IN CART" label instead of a status pill) so it never reads
+/// as a placed order.
+class _CurrentCartCard extends StatelessWidget {
+  const _CurrentCartCard({required this.cart});
+  final CartState cart;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primaryContainer.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        onTap: () => context.push(AppRoutes.cart),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.stackMd),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: AppColors.primaryContainer, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.shopping_cart_outlined,
+                  color: AppColors.primary),
+              const SizedBox(width: AppSpacing.stackSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('IN CART',
+                        style: AppTextStyles.labelCaps
+                            .copyWith(color: AppColors.primary)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${cart.totalQuantity} item${cart.totalQuantity == 1 ? '' : 's'} • \$${cart.subtotal.toStringAsFixed(2)}',
+                      style: AppTextStyles.bodyLg,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.primary),
+            ],
+          ),
+        ),
       ),
     );
   }

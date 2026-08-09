@@ -47,7 +47,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     final shopId = cart.shopId;
 

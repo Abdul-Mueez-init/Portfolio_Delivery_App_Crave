@@ -10,6 +10,7 @@ import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/customer_bottom_nav.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../cart/presentation/widgets/cart_fab.dart';
 import '../../application/shops_provider.dart';
 import '../widgets/shop_card.dart';
 
@@ -23,100 +24,111 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _TopBar(),
-            Expanded(
-              child: RefreshIndicator(
-                color: AppColors.primary,
-                onRefresh: () async => ref.invalidate(shopsListProvider),
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.marginMain,
-                          AppSpacing.stackMd,
-                          AppSpacing.marginMain,
-                          0,
-                        ),
-                        child: Column(
-                          children: [
-                            _SearchBar(
-                              onChanged: (value) => ref
-                                  .read(shopSearchQueryProvider.notifier)
-                                  .state = value,
+      // Wrapped in a Stack so CartFab (Phase H #15 — it renders its own
+      // Positioned internally, same pattern as shop_detail_screen.dart)
+      // can float over the shop list whenever the cart isn't empty.
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                _TopBar(),
+                Expanded(
+                  child: RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () async => ref.invalidate(shopsListProvider),
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.marginMain,
+                              AppSpacing.stackMd,
+                              AppSpacing.marginMain,
+                              0,
                             ),
-                            const SizedBox(height: AppSpacing.stackMd),
-                            _CategoryChips(selected: selectedCategory),
-                          ],
+                            child: Column(
+                              children: [
+                                _SearchBar(
+                                  onChanged: (value) => ref
+                                      .read(shopSearchQueryProvider.notifier)
+                                      .state = value,
+                                ),
+                                const SizedBox(height: AppSpacing.stackMd),
+                                _CategoryChips(selected: selectedCategory),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    filteredShops.when(
-                      loading: () => const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: SkeletonLoader.list(),
-                      ),
-                      error: (error, stack) => SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: ErrorView(
-                          message:
-                              "We couldn't load shops right now. Please try again.",
-                          onRetry: () => ref.invalidate(shopsListProvider),
-                        ),
-                      ),
-                      data: (shops) {
-                        if (shops.isEmpty) {
-                          return SliverFillRemaining(
+                        filteredShops.when(
+                          loading: () => const SliverFillRemaining(
                             hasScrollBody: false,
-                            child: EmptyState(
-                              icon: Icons.storefront_outlined,
-                              title: 'No shops found',
-                              message: selectedCategory == 'All'
-                                  ? 'Check back soon — new shops join Crave regularly.'
-                                  : 'No shops match "$selectedCategory" right now. Try a different category.',
-                              actionLabel: selectedCategory == 'All'
-                                  ? null
-                                  : 'Clear filter',
-                              onAction: selectedCategory == 'All'
-                                  ? null
-                                  : () => ref
-                                      .read(selectedCategoryProvider.notifier)
-                                      .state = 'All',
+                            child: SkeletonLoader.list(),
+                          ),
+                          error: (error, stack) => SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: ErrorView(
+                              message:
+                                  "We couldn't load shops right now. Please try again.",
+                              onRetry: () => ref.invalidate(shopsListProvider),
                             ),
-                          );
-                        }
-                        return SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.marginMain,
-                            AppSpacing.stackMd,
-                            AppSpacing.marginMain,
-                            AppSpacing.stackLg,
                           ),
-                          sliver: SliverList.separated(
-                            itemCount: shops.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: AppSpacing.gutter),
-                            itemBuilder: (context, index) {
-                              final shop = shops[index];
-                              return ShopCard(
-                                shop: shop,
-                                onTap: () => context
-                                    .push('${AppRoutes.shopDetail}/${shop.id}'),
+                          data: (shops) {
+                            if (shops.isEmpty) {
+                              return SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: EmptyState(
+                                  icon: Icons.storefront_outlined,
+                                  title: 'No shops found',
+                                  message: selectedCategory == 'All'
+                                      ? 'Check back soon — new shops join Crave regularly.'
+                                      : 'No shops match "$selectedCategory" right now. Try a different category.',
+                                  actionLabel: selectedCategory == 'All'
+                                      ? null
+                                      : 'Clear filter',
+                                  onAction: selectedCategory == 'All'
+                                      ? null
+                                      : () => ref
+                                          .read(
+                                              selectedCategoryProvider.notifier)
+                                          .state = 'All',
+                                ),
                               );
-                            },
-                          ),
-                        );
-                      },
+                            }
+                            return SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.marginMain,
+                                AppSpacing.stackMd,
+                                AppSpacing.marginMain,
+                                AppSpacing.stackLg,
+                              ),
+                              sliver: SliverList.separated(
+                                itemCount: shops.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: AppSpacing.gutter),
+                                itemBuilder: (context, index) {
+                                  final shop = shops[index];
+                                  return ShopCard(
+                                    shop: shop,
+                                    onTap: () => context.push(
+                                        '${AppRoutes.shopDetail}/${shop.id}'),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          CartFab(
+            onTap: () => context.push(AppRoutes.cart),
+          ),
+        ],
       ),
       bottomNavigationBar: const CustomerBottomNav(currentIndex: 0),
     );

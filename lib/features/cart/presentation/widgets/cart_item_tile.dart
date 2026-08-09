@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -48,10 +49,12 @@ class CartItemTile extends StatelessWidget {
                   height: 80,
                   child: item.imageUrl.isEmpty
                       ? Container(color: AppColors.surfaceContainerHigh)
-                      : Image.network(
-                          item.imageUrl,
+                      : CachedNetworkImage(
+                          imageUrl: item.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) =>
+                          placeholder: (context, url) =>
+                              Container(color: AppColors.surfaceContainerHigh),
+                          errorWidget: (context, url, error) =>
                               Container(color: AppColors.surfaceContainerHigh),
                         ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -166,14 +167,12 @@ class _CoverImage extends StatelessWidget {
           children: [
             shop.coverImageUrl.isEmpty
                 ? Container(color: AppColors.surfaceContainerHigh)
-                : Image.network(
-                    shop.coverImageUrl,
+                : CachedNetworkImage(
+                    imageUrl: shop.coverImageUrl,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(color: AppColors.surfaceContainerHigh);
-                    },
-                    errorBuilder: (context, error, stack) =>
+                    placeholder: (context, url) =>
+                        Container(color: AppColors.surfaceContainerHigh),
+                    errorWidget: (context, url, error) =>
                         Container(color: AppColors.surfaceContainerHigh),
                   ),
             DecoratedBox(

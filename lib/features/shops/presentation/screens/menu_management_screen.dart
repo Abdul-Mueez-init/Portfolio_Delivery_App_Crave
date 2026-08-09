@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -231,8 +232,22 @@ class _MenuItemRowState extends ConsumerState<_MenuItemRow> {
           ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             child: item.imageUrl.isNotEmpty
-                ? Image.network(item.imageUrl,
-                    width: 56, height: 56, fit: BoxFit.cover)
+                ? CachedNetworkImage(
+                    imageUrl: item.imageUrl,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                        width: 56,
+                        height: 56,
+                        color: AppColors.surfaceContainer),
+                    errorWidget: (context, url, error) => Container(
+                        width: 56,
+                        height: 56,
+                        color: AppColors.surfaceContainer,
+                        child: const Icon(Icons.fastfood_outlined,
+                            color: AppColors.secondary)),
+                  )
                 : Container(
                     width: 56,
                     height: 56,

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -226,10 +227,12 @@ class _ImageWithCloseButton extends StatelessWidget {
             height: 240,
             child: item.imageUrl.isEmpty
                 ? Container(color: AppColors.surfaceContainerHigh)
-                : Image.network(
-                    item.imageUrl,
+                : CachedNetworkImage(
+                    imageUrl: item.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) =>
+                    placeholder: (context, url) =>
+                        Container(color: AppColors.surfaceContainerHigh),
+                    errorWidget: (context, url, error) =>
                         Container(color: AppColors.surfaceContainerHigh),
                   ),
           ),

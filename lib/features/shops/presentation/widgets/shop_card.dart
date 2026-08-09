@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -40,15 +41,12 @@ class ShopCard extends StatelessWidget {
                     width: double.infinity,
                     child: shop.coverImageUrl.isEmpty
                         ? Container(color: AppColors.surfaceContainerHigh)
-                        : Image.network(
-                            shop.coverImageUrl,
+                        : CachedNetworkImage(
+                            imageUrl: shop.coverImageUrl,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return Container(
-                                  color: AppColors.surfaceContainerHigh);
-                            },
-                            errorBuilder: (context, error, stack) => Container(
+                            placeholder: (context, url) => Container(
+                                color: AppColors.surfaceContainerHigh),
+                            errorWidget: (context, url, error) => Container(
                                 color: AppColors.surfaceContainerHigh),
                           ),
                   ),
