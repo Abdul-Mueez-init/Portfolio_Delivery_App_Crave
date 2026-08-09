@@ -16,7 +16,7 @@ import '../../data/models/shop_model.dart';
 import '../../../auth/application/auth_provider.dart';
 
 /// design.md screen 16 — the owner's landing screen after onboarding.
-/// Greeting + today's counts + quick links into the other 3 owner
+/// Greeting + today's counts + quick links into the other owner
 /// screens, all keyed off myShopProvider so the whole owner shell
 /// shares one "what shop am I" source of truth.
 class DashboardHomeScreen extends ConsumerWidget {
@@ -170,6 +170,13 @@ class _DashboardBody extends ConsumerWidget {
             iconBackground: AppColors.surfaceContainerHigh,
             title: 'Manage Menu',
             onTap: () => context.go(AppRoutes.ownerMenuManagement),
+          ),
+          const SizedBox(height: AppSpacing.stackSm),
+          _QuickActionTile(
+            icon: Icons.event_available_rounded,
+            iconBackground: AppColors.tertiaryContainer.withOpacity(0.25),
+            title: 'Manage Time Slots',
+            onTap: () => context.push(AppRoutes.ownerSlotManagement),
           ),
         ],
       ),

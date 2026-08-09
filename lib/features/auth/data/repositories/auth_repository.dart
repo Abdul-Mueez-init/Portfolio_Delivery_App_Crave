@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_role.dart';
@@ -112,6 +114,41 @@ class AuthRepository {
       'full_name': fullName,
       'phone': phone.trim().isEmpty ? null : phone.trim(),
     }).eq('id', user.id);
+  }
+
+  /// Uploads a profile photo to the same `shop-images` bucket used by
+  /// menu items and shop covers, under an `avatars/` prefix — no second
+  /// bucket needed (see SESSION_HANDOFF_phaseAH_fixes.md Phase E).
+  /// Path is keyed by user id + timestamp so re-uploading doesn't
+  /// require a delete-first step.
+  Future<String> uploadAvatarImage({
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final user = currentUser;
+    if (user == null) {
+      throw StateError('uploadAvatarImage called with no signed-in user.');
+    }
+    final path =
+        'avatars/${user.id}/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    await _client.storage.from('shop-images').uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    return _client.storage.from('shop-images').getPublicUrl(path);
+  }
+
+  /// Writes the uploaded photo's URL to the real `users.avatar_url`
+  /// column (ERD.md §2) — this is the column Profile now reads from
+  /// instead of the Google-only `userMetadata['avatar_url']` fallback,
+  /// so email/password accounts get avatars too.
+  Future<void> updateAvatarUrl(String avatarUrl) async {
+    final user = currentUser;
+    if (user == null) return;
+    await _client
+        .from('users')
+        .update({'avatar_url': avatarUrl}).eq('id', user.id);
   }
 
   /// Google sign-in has no role-picker step of its own. Call this right

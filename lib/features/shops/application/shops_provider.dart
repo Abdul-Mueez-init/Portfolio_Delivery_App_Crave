@@ -43,7 +43,7 @@ final filteredShopsProvider = Provider<AsyncValue<List<ShopModel>>>((ref) {
   final query = ref.watch(shopSearchQueryProvider).trim().toLowerCase();
 
   return shopsAsync.whenData((shops) {
-    return shops.where((shop) {
+    final filtered = shops.where((shop) {
       final matchesCategory = selectedCategory == 'All' ||
           _categoriesMatch(shop.category, selectedCategory);
       final matchesQuery = query.isEmpty ||
@@ -51,6 +51,22 @@ final filteredShopsProvider = Provider<AsyncValue<List<ShopModel>>>((ref) {
           shop.category.toLowerCase().contains(query);
       return matchesCategory && matchesQuery;
     }).toList();
+
+    if (query.isEmpty) return filtered;
+
+    // Phase H fix: a name-prefix match should rank above a match that
+    // only occurs mid-string or in category text. List.sort isn't
+    // stable in Dart, so we sort on (rank, original index) explicitly
+    // to keep same-rank shops in their original relative order.
+    final indexed = filtered.asMap().entries.toList();
+    int rank(ShopModel shop) =>
+        shop.name.toLowerCase().startsWith(query) ? 0 : 1;
+    indexed.sort((a, b) {
+      final rankCompare = rank(a.value).compareTo(rank(b.value));
+      if (rankCompare != 0) return rankCompare;
+      return a.key.compareTo(b.key);
+    });
+    return indexed.map((e) => e.value).toList();
   });
 });
 

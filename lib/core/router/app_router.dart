@@ -19,6 +19,8 @@ import '../../features/orders/presentation/screens/order_tracking_screen.dart';
 import '../../features/orders/presentation/screens/order_queue_screen.dart';
 import '../../features/bookings/presentation/screens/booking_confirmation_screen.dart';
 import '../../features/bookings/presentation/screens/booking_calendar_screen.dart';
+import '../../features/bookings/presentation/screens/owner_slot_management_screen.dart';
+import '../../features/bookings/presentation/screens/time_slot_form_screen.dart';
 import '../../features/activity/presentation/screens/activity_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/settings_screen.dart';
@@ -53,6 +55,9 @@ abstract class AppRoutes {
   // extra: MenuItemFormArgs (menu_item_form_screen.dart)
   static const ownerMenuItemForm = '/owner/menu/item-form';
   static const ownerShopSettings = '/owner/settings';
+  static const ownerSlotManagement = '/owner/slots';
+  // extra: TimeSlotFormArgs (time_slot_form_screen.dart)
+  static const ownerSlotForm = '/owner/slots/form';
   static const chooseRole = '/choose-role';
 
   static const publicRoutes = {splash, onboarding, login, signup};
@@ -193,6 +198,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.ownerShopSettings,
         builder: (context, state) => const ShopSettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerSlotManagement,
+        builder: (context, state) => const OwnerSlotManagementScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerSlotForm,
+        builder: (context, state) {
+          final args = state.extra as TimeSlotFormArgs;
+          return TimeSlotFormScreen(args: args);
+        },
       ),
       GoRoute(
           path: AppRoutes.chooseRole,

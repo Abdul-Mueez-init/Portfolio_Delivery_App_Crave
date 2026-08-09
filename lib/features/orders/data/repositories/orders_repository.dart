@@ -7,15 +7,17 @@ import '../models/order_model.dart';
 /// Follows the same pattern as BookingsRepository/ShopsRepository: plain
 /// class wrapping SupabaseClient, throws on failure, client injected.
 ///
-/// FLAGGED ASSUMPTION (per this session's "simulate payment for now"
-/// decision): no Stripe/PaymentIntent call happens here — createOrder
-/// inserts the order directly at status='placed', payment_status='paid',
-/// as if payment already succeeded. architecture.md §6 / rules.md §2
-/// still hold (placed != confirmed — only the owner's Accept moves it
-/// there) — only the *payment capture step itself* is simulated. Swap
-/// the body of createOrder for a real PaymentSheet + Edge Function call
-/// in a dedicated Stripe batch later; the insert shape below shouldn't
-/// need to change when that happens.
+/// PERMANENT DESIGN DECISION (confirmed by the project owner, Phase H):
+/// payment stays simulated for good — Stripe test mode isn't usable
+/// from Pakistan, so this is not a "swap for real Stripe later" stub.
+/// createOrder inserts the order directly at status='placed',
+/// payment_status='paid', as if payment already succeeded.
+/// architecture.md §6 / rules.md §2 still hold (placed != confirmed —
+/// only the owner's Accept moves it there) — only the *payment capture
+/// step itself* is simulated. CheckoutScreen adds a cosmetic-only
+/// "Add Card" UI beat (fake card number/expiry fields, no validation,
+/// no gateway call) purely so the flow *feels* like a payment
+/// happened — it does not feed into this method at all.
 class OrdersRepository {
   OrdersRepository(this._client);
   final SupabaseClient _client;

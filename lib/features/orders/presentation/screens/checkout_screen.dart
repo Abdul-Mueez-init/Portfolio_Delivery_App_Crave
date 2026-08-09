@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/custom_textfield.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/router/app_router.dart';
@@ -20,8 +21,30 @@ import '../../data/models/fulfillment_type.dart';
 /// flagged taxRate assumption. Revisit once a real fee rule is defined.
 const double _flatDeliveryFee = 2.99;
 
-class CheckoutScreen extends ConsumerWidget {
+class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
+
+  @override
+  ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
+}
+
+class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+  // Phase H #14: cosmetic-only "Add Card" fields. Purely a UI beat so
+  // the flow *feels* like a real payment step happened — no validation
+  // beyond basic formatting, no gateway call, nothing here ever reaches
+  // OrdersRepository.createOrder() (see its doc comment: payment stays
+  // simulated permanently, this is not a placeholder for real Stripe).
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
+
+  @override
+  void dispose() {
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -151,15 +174,22 @@ class CheckoutScreen extends ConsumerWidget {
                                 .copyWith(color: AppColors.primary)),
                       ],
                     ),
+                    const SizedBox(height: AppSpacing.stackLg),
+                    _FakeCardSection(
+                      cardNumberController: _cardNumberController,
+                      expiryController: _expiryController,
+                      cvvController: _cvvController,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.stackMd),
-              // "Place Order" simulates payment success — no Stripe
-              // yet (see OrdersRepository doc comment). Real
-              // PaymentSheet wiring is a dedicated later batch.
+              // "Place Order" simulates payment success — payment is
+              // permanently simulated (see OrdersRepository's class doc
+              // comment). The card fields above are a cosmetic UI beat
+              // only; they're never read by handlePlaceOrder below.
               CustomButton(
-                label: 'Place Order',
+                label: 'Pay \$${total.toStringAsFixed(2)} & Place Order',
                 isLoading: checkoutState.isPlacingOrder,
                 onPressed: handlePlaceOrder,
               ),
@@ -167,6 +197,87 @@ class CheckoutScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FakeCardSection extends StatelessWidget {
+  const _FakeCardSection({
+    required this.cardNumberController,
+    required this.expiryController,
+    required this.cvvController,
+  });
+
+  final TextEditingController cardNumberController;
+  final TextEditingController expiryController;
+  final TextEditingController cvvController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Payment', style: AppTextStyles.labelCaps),
+        const SizedBox(height: AppSpacing.stackSm),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.stackMd),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: AppColors.outlineVariant),
+          ),
+          child: Column(
+            children: [
+              CustomTextField(
+                label: 'Card Number',
+                hintText: '4242 4242 4242 4242',
+                controller: cardNumberController,
+                keyboardType: TextInputType.number,
+                prefixIcon: Icons.credit_card_outlined,
+                onChanged: (_) {}, // cosmetic only, never read on submit
+                // A light card-number formatter keeps this feeling real
+                // without any actual validation (Phase H #14).
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      label: 'Expiry',
+                      hintText: 'MM/YY',
+                      controller: expiryController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.stackMd),
+                  Expanded(
+                    child: CustomTextField(
+                      label: 'CVV',
+                      hintText: '123',
+                      controller: cvvController,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.stackSm),
+        Row(
+          children: [
+            const Icon(Icons.lock_outline,
+                size: 14, color: AppColors.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(
+              'Test mode — no real card is charged.',
+              style: AppTextStyles.bodySm
+                  .copyWith(color: AppColors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
