@@ -83,30 +83,49 @@ class FulfillmentSelectionScreen extends ConsumerWidget {
               _DeliveryAddressField(
                 address: fulfillment.address,
                 onChanged: notifier.setAddress,
+                readOnly: fulfillment.isAddressFromGps,
               ),
               const SizedBox(height: AppSpacing.stackSm),
-              TextButton.icon(
-                onPressed: fulfillment.isLocating
-                    ? null
-                    : () => notifier.useCurrentLocation(
-                          shopLat: shop.lat ?? 0,
-                          shopLng: shop.lng ?? 0,
-                        ),
-                icon: fulfillment.isLocating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.my_location, size: 20),
-                label: Text(fulfillment.isLocating
-                    ? 'Getting your location…'
-                    : 'Use current location'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: EdgeInsets.zero,
-                  alignment: Alignment.centerLeft,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: fulfillment.isLocating
+                          ? null
+                          : () => notifier.useCurrentLocation(
+                                shopLat: shop.lat ?? 0,
+                                shopLng: shop.lng ?? 0,
+                              ),
+                      icon: fulfillment.isLocating
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location, size: 20),
+                      label: Text(fulfillment.isLocating
+                          ? 'Getting your location…'
+                          : 'Use current location'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ),
+                  ),
+                  // Only shown once GPS has locked the field — lets the
+                  // person switch back to typing a different address by
+                  // hand instead of being stuck with the pinned one.
+                  if (fulfillment.isAddressFromGps)
+                    TextButton(
+                      onPressed: notifier.editAddressManually,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.secondary,
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text('Edit manually'),
+                    ),
+                ],
               ),
               if (fulfillment.locationError != null) ...[
                 const SizedBox(height: 4),
@@ -392,10 +411,18 @@ class _DeliveryAddressField extends StatefulWidget {
   const _DeliveryAddressField({
     required this.address,
     required this.onChanged,
+    this.readOnly = false,
   });
 
   final String address;
   final ValueChanged<String> onChanged;
+
+  /// True once the address was pinned from a real GPS fix — the field
+  /// shows the resolved address but can't be hand-edited until the
+  /// person taps "Edit manually" (see fulfillment_provider.dart's
+  /// isAddressFromGps doc comment for why: keeps the visible text in
+  /// sync with the deliveryLat/deliveryLng actually sent to checkout).
+  final bool readOnly;
 
   @override
   State<_DeliveryAddressField> createState() => _DeliveryAddressFieldState();
@@ -435,10 +462,18 @@ class _DeliveryAddressFieldState extends State<_DeliveryAddressField> {
     return TextField(
       controller: _controller,
       onChanged: widget.onChanged,
+      readOnly: widget.readOnly,
       style: AppTextStyles.bodyLg,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: 'Enter full address',
-        prefixIcon: Icon(Icons.location_on_outlined),
+        prefixIcon: Icon(
+          widget.readOnly ? Icons.my_location : Icons.location_on_outlined,
+          color: widget.readOnly ? AppColors.primary : null,
+        ),
+        filled: widget.readOnly ? true : null,
+        fillColor: widget.readOnly
+            ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
+            : null,
       ),
     );
   }

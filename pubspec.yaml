@@ -29,6 +29,18 @@ dependencies:
   # random-offset simulation in fulfillment_provider.dart)
   geolocator: ^13.0.2
  
+  # Reverse geocoding (lat/lng -> real street address) for the GPS
+  # branch of "Use current location" — see fulfillment_provider.dart.
+  # FIX: was ^3.0.0, whose geocoding_android build was compiled
+  # against Android SDK 33 — too old for its own transitive androidx
+  # deps (fragment, window, lifecycle-*, etc., which need 34+),
+  # causing `checkDebugAarMetadata` to fail the build outright no
+  # matter what compileSdk the *app* itself is set to. 5.0.0 (current
+  # release) ships a modern geocoding_android build. Note: 5.0.0 also
+  # changed the API from top-level functions to a `Geocoding` class
+  # instance — see fulfillment_provider.dart's updated usage.
+  geocoding: ^5.0.0
+ 
   # Environment variables
   flutter_dotenv: ^5.1.0
  
@@ -54,4 +66,3 @@ flutter:
   assets:
     - .env
     - assets/images/
-    

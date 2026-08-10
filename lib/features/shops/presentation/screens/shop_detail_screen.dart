@@ -75,15 +75,38 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
       children: [
         CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(child: _CoverImage(shop: shop)),
+            // FIX: _CoverImage and the overlapping _ShopInfoCard used to
+            // live in two separate SliverToBoxAdapters, with the card
+            // pulled up via Transform.translate(-48). CustomScrollView
+            // paints each sliver as its own layer, so a negative-offset
+            // Transform reaching into the *previous* sliver gets clipped
+            // at the sliver boundary instead of painting over it like a
+            // plain Stack would — that's what was swallowing the top
+            // ~40px of the card (name + status badge) on every shop.
+            // Fix: merge both into ONE sliver, and use a real negative
+            // top *padding* (not Container.margin — Container's margin
+            // has a hard `margin.isNonNegative` assertion and throws at
+            // runtime on any negative value, which is what crashed the
+            // app on launch after the first pass at this fix; plain
+            // Padding has no such restriction and negative EdgeInsets
+            // work exactly the same way — shrinking the reported layout
+            // size — without the assertion) — so there's no leftover
+            // gap AND no cross-sliver clip, since it's all one render
+            // subtree now.
             SliverToBoxAdapter(
-              child: Transform.translate(
-                offset: const Offset(0, -48),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                  child: _ShopInfoCard(shop: shop),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _CoverImage(shop: shop),
+                  Padding(
+                    padding: const EdgeInsets.only(top: -48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.gutter),
+                      child: _ShopInfoCard(shop: shop),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (hasBookingTab)

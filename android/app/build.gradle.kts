@@ -6,7 +6,14 @@ plugins {
 
 android {
     namespace = "com.example.crave"
-    compileSdk = flutter.compileSdkVersion
+    // FIX: was `flutter.compileSdkVersion`, which resolved to
+    // android-33 on this Flutter install — too old for
+    // geocoding_android and several of its transitive androidx deps
+    // (fragment, window, activity, lifecycle-*, core-ktx, etc.), all
+    // of which require compileSdk >= 34. Pinned explicitly instead of
+    // trusting the Flutter tool's default, since that default clearly
+    // isn't tracking current androidx requirements on this setup.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,7 +27,10 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // FIX: pinned alongside compileSdk for the same reason —
+        // targetSdk should track compileSdk, not fall back to a
+        // stale flutter.targetSdkVersion default.
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
  
+    <!-- FIX: previously only declared in the debug/profile manifests
+         (android/app/src/{debug,profile}/AndroidManifest.xml), which
+         Flutter auto-injects for dev builds only. Without it here in
+         `main`, a release build silently loses all network access —
+         Supabase, Google Maps tiles, and the new geocoding reverse
+         lookup would all fail on a real release APK/Play build. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+ 
     <application
         android:label="crave"
         android:name="${applicationName}"
