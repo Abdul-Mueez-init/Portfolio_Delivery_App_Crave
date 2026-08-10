@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -79,13 +80,9 @@ class FulfillmentSelectionScreen extends ConsumerWidget {
             ] else ...[
               Text('Delivery Address', style: AppTextStyles.labelCaps),
               const SizedBox(height: AppSpacing.stackSm),
-              TextField(
+              _DeliveryAddressField(
+                address: fulfillment.address,
                 onChanged: notifier.setAddress,
-                style: AppTextStyles.bodyLg,
-                decoration: const InputDecoration(
-                  hintText: 'Enter full address',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
               ),
               const SizedBox(height: AppSpacing.stackSm),
               TextButton.icon(
@@ -119,7 +116,18 @@ class FulfillmentSelectionScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.stackMd),
-              const _MapPreview(),
+              // Phase G follow-up: was a static decorative container
+              // ("Visual flair" per the Stitch export) even after real
+              // GPS landed — google_maps_flutter was already a dependency
+              // but never actually wired to a GoogleMap widget anywhere.
+              // Now centers on the real fix (deliveryLat/Lng) once
+              // captured, falling back to the shop's location before
+              // that so the map is never blank.
+              _MapPreview(
+                latitude: fulfillment.deliveryLat ?? shop.lat,
+                longitude: fulfillment.deliveryLng ?? shop.lng,
+                hasRealFix: fulfillment.deliveryLat != null,
+              ),
             ],
             const SizedBox(height: AppSpacing.stackLg),
             CustomButton(
@@ -374,36 +382,147 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
-/// Static illustrative preview — the real Stitch markup comments this
-/// exact element as "Visual flair", not a live map. See
-/// fulfillment_provider.dart for the note on swapping to a real
-/// GoogleMap later.
-class _MapPreview extends StatelessWidget {
-  const _MapPreview();
+/// TextField that stays in sync with FulfillmentState.address — the
+/// old version was a bare stateless TextField with only onChanged, so
+/// tapping "Use current location" updated the address in state but the
+/// field on screen kept showing empty. A controller + didUpdateWidget
+/// sync fixes that without restructuring the parent into a
+/// ConsumerStatefulWidget.
+class _DeliveryAddressField extends StatefulWidget {
+  const _DeliveryAddressField({
+    required this.address,
+    required this.onChanged,
+  });
+
+  final String address;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_DeliveryAddressField> createState() => _DeliveryAddressFieldState();
+}
+
+class _DeliveryAddressFieldState extends State<_DeliveryAddressField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.address);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DeliveryAddressField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only overwrite the field when the address changed from *outside*
+    // (e.g. GPS fix landing) — not on every rebuild, or the cursor
+    // would jump while the person is still typing.
+    if (widget.address != oldWidget.address &&
+        widget.address != _controller.text) {
+      _controller.text = widget.address;
+      _controller.selection =
+          TextSelection.collapsed(offset: _controller.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 180,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border:
-            Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onChanged,
+      style: AppTextStyles.bodyLg,
+      decoration: const InputDecoration(
+        hintText: 'Enter full address',
+        prefixIcon: Icon(Icons.location_on_outlined),
       ),
-      child: Center(
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child:
-              const Icon(Icons.location_on, color: AppColors.primary, size: 32),
+    );
+  }
+}
+
+/// Real GoogleMap centered on the delivery point — was previously a
+/// static decorative container ("Visual flair" per the Stitch export)
+/// even after Phase G landed real GPS. Non-interactive (gestures off)
+/// since it's a small preview inside a scrolling ListView; a
+/// full-interactive map is a bigger change than this fix batch.
+class _MapPreview extends StatelessWidget {
+  const _MapPreview({
+    required this.latitude,
+    required this.longitude,
+    required this.hasRealFix,
+  });
+
+  final double? latitude;
+  final double? longitude;
+
+  /// True once a real GPS fix (or manually-entered point) exists —
+  /// false while still just falling back to the shop's own location,
+  /// so the label below the map is honest about what it's showing.
+  final bool hasRealFix;
+
+  @override
+  Widget build(BuildContext context) {
+    if (latitude == null || longitude == null) {
+      // No shop lat/lng and no GPS fix yet — nothing to center on.
+      return Container(
+        height: 180,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.3)),
         ),
-      ),
+        child: Center(
+          child: Text(
+            'Tap "Use current location" or enter an address',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySm,
+          ),
+        ),
+      );
+    }
+
+    final point = LatLng(latitude!, longitude!);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          child: SizedBox(
+            height: 180,
+            width: double.infinity,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(target: point, zoom: 15),
+              markers: {
+                Marker(
+                    markerId: const MarkerId('delivery_point'),
+                    position: point),
+              },
+              // Preview only — disable gestures so it doesn't fight the
+              // parent ListView's scroll.
+              zoomGesturesEnabled: false,
+              scrollGesturesEnabled: false,
+              rotateGesturesEnabled: false,
+              tiltGesturesEnabled: false,
+              myLocationButtonEnabled: false,
+              liteModeEnabled: true,
+            ),
+          ),
+        ),
+        if (hasRealFix) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Showing your current location',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.secondary),
+          ),
+        ],
+      ],
     );
   }
 }

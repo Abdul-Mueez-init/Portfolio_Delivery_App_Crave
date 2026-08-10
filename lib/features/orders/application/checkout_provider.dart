@@ -53,9 +53,13 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       state = state.copyWith(isPlacingOrder: false);
       return order;
     } catch (e) {
+      // Surface the real cause (e.g. an RLS 403) instead of swallowing
+      // it into a generic message — same "don't silently paper over
+      // blockers" pattern as menu_item_form_screen.dart/
+      // shop_settings_screen.dart's error surfacing fix.
       state = state.copyWith(
         isPlacingOrder: false,
-        error: "Couldn't place your order. Please try again.",
+        error: "Couldn't place your order: $e",
       );
       return null;
     }

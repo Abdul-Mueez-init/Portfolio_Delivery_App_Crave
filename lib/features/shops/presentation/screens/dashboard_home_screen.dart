@@ -104,9 +104,12 @@ class _DashboardBody extends ConsumerWidget {
                     onPressed: () => context.push(AppRoutes.ownerShopSettings),
                   ),
                   IconButton(
+                    // Matches profile_screen.dart's _LogOutButton token
+                    // (Phase H #17) — this owner-side icon was missed in
+                    // that batch and was still on the old onSurface token.
                     icon: const Icon(
                       Icons.logout_rounded,
-                      color: AppColors.onSurface,
+                      color: AppColors.primaryContainer,
                     ),
                     tooltip: 'Log out',
                     onPressed: () async {
