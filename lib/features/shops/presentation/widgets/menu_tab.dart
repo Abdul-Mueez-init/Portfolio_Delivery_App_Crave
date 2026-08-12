@@ -43,23 +43,39 @@ class MenuTab extends ConsumerWidget {
           );
         }
         final grouped = groupByCategory(items);
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.gutter,
-            AppSpacing.stackMd,
-            AppSpacing.gutter,
-            120, // clears the floating cart bar
-          ),
-          children: [
-            for (final entry in grouped.entries) ...[
-              Text(entry.key, style: AppTextStyles.headlineMd),
-              const SizedBox(height: AppSpacing.stackMd),
-              for (final item in entry.value) ...[
-                _MenuItemCard(shopId: shopId, item: item),
-                const SizedBox(height: AppSpacing.stackMd),
-              ],
-              const SizedBox(height: AppSpacing.stackSm),
-            ],
+        // FIX (shop detail scroll-lock bug): this used to be a bare
+        // ListView, which meant it ran its own independent scroll
+        // position instead of participating in shop_detail_screen.dart's
+        // NestedScrollView. SliverOverlapInjector consumes the overlap
+        // recorded by the tab bar's SliverOverlapAbsorber in the header,
+        // so the first category label starts right below the pinned tab
+        // bar instead of underneath it.
+        return CustomScrollView(
+          slivers: [
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.stackMd,
+                AppSpacing.gutter,
+                120, // clears the floating cart bar
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  for (final entry in grouped.entries) ...[
+                    Text(entry.key, style: AppTextStyles.headlineMd),
+                    const SizedBox(height: AppSpacing.stackMd),
+                    for (final item in entry.value) ...[
+                      _MenuItemCard(shopId: shopId, item: item),
+                      const SizedBox(height: AppSpacing.stackMd),
+                    ],
+                    const SizedBox(height: AppSpacing.stackSm),
+                  ],
+                ]),
+              ),
+            ),
           ],
         );
       },

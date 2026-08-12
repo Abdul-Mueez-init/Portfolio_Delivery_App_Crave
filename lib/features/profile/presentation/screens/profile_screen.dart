@@ -28,13 +28,11 @@ import '../../../auth/data/models/user_profile_model.dart';
 /// _ImagePicker, uploading to the shared `shop-images` bucket under an
 /// `avatars/` prefix (AuthRepository.uploadAvatarImage).
 ///
-/// FLAGGED SCOPE NOTE: profile_updated's Stitch design shows "Saved
-/// Addresses" and "Payment Methods" rows — neither has a backing table
-/// or feature yet (not in ERD.md, not in PRD.md's MVP scope). They're
-/// shown here as inert rows with a "coming soon" tap response rather
-/// than omitted outright, so the screen still visually matches the
-/// design reference — but don't mistake them for wired features.
-/// "Order History" and "Settings" are both real now.
+/// FIX: "Saved Addresses" and "Payment Methods" are now real features —
+/// see lib/features/addresses and lib/features/payments, backed by the
+/// saved_addresses/payment_methods tables added in
+/// supabase/fix_booking_rpcs_saved_addresses_payment_methods.sql.
+/// "Order History" and "Settings" remain real as before.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -120,10 +118,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           _MenuItemData(
                             icon: Icons.location_on_outlined,
                             label: 'Saved Addresses',
+                            onTap: () =>
+                                context.push(AppRoutes.savedAddresses),
                           ),
                           _MenuItemData(
                             icon: Icons.credit_card_outlined,
                             label: 'Payment Methods',
+                            onTap: () =>
+                                context.push(AppRoutes.paymentMethods),
                           ),
                           _MenuItemData(
                             icon: Icons.receipt_long_outlined,

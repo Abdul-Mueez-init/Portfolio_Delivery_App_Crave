@@ -11,6 +11,8 @@ import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../cart/application/cart_provider.dart';
+import '../../../payments/application/payment_methods_provider.dart';
+import '../../../payments/data/models/payment_method_model.dart';
 import '../../../shops/application/shop_detail_provider.dart';
 import '../../application/checkout_provider.dart';
 import '../../application/fulfillment_provider.dart';
@@ -37,6 +39,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
+
+  // Phase H follow-up: consent checkbox for saving the (simulated) card
+  // to Payment Methods. Explicitly opt-in and unchecked by default —
+  // per the product ask, this is never required to place an order.
+  bool _saveCard = false;
 
   @override
   void dispose() {
@@ -91,6 +98,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         );
         return;
       }
+
+      // Phase H follow-up: honor the consent checkbox — save the
+      // (simulated) card to Payment Methods on a successful order. Never
+      // blocks or fails the order itself if this write has a problem;
+      // the order already succeeded above, so a save-card hiccup is
+      // shown as a quiet snackbar, not a checkout failure.
+      if (_saveCard) {
+        final digits = _cardNumberController.text.replaceAll(' ', '');
+        final last4 = digits.length >= 4
+            ? digits.substring(digits.length - 4)
+            : digits.padLeft(4, '0');
+        final expiryParts = _expiryController.text.split('/');
+        final expiryMonth = expiryParts.isNotEmpty
+            ? int.tryParse(expiryParts[0].trim())
+            : null;
+        final expiryYear = expiryParts.length > 1
+            ? int.tryParse(expiryParts[1].trim())
+            : null;
+        try {
+          await ref.read(paymentMethodsRepositoryProvider).addPaymentMethod(
+                brand: CardBrandX.detect(digits),
+                last4: last4,
+                expiryMonth: expiryMonth,
+                expiryYear:
+                    expiryYear != null ? 2000 + (expiryYear % 100) : null,
+              );
+          ref.invalidate(paymentMethodsProvider);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Order placed, but couldn't save the card: $e")),
+            );
+          }
+        }
+      }
+
+      if (!context.mounted) return;
 
       // Clear Cart + reset fulfillment now that the order is real,
       // then Navigate to Tracking — PLAN.md Phase 5 order.
@@ -179,6 +223,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       cardNumberController: _cardNumberController,
                       expiryController: _expiryController,
                       cvvController: _cvvController,
+                      saveCard: _saveCard,
+                      onSaveCardChanged: (value) =>
+                          setState(() => _saveCard = value ?? false),
                     ),
                   ],
                 ),
@@ -206,11 +253,19 @@ class _FakeCardSection extends StatelessWidget {
     required this.cardNumberController,
     required this.expiryController,
     required this.cvvController,
+    required this.saveCard,
+    required this.onSaveCardChanged,
   });
 
   final TextEditingController cardNumberController;
   final TextEditingController expiryController;
   final TextEditingController cvvController;
+
+  // Phase H follow-up: consent checkbox state, lifted to the parent
+  // so handlePlaceOrder can read it — never required to place an
+  // order (unchecked by default, no validation gating the button).
+  final bool saveCard;
+  final ValueChanged<bool?> onSaveCardChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +315,44 @@ class _FakeCardSection extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.stackSm),
+              // Consent checkbox — reads "Allow Crave to save your card
+              // details securely" per the product ask, sits directly
+              // under the card fields it refers to. Not mandatory: the
+              // order places fine whether this is checked or not.
+              InkWell(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                onTap: () => onSaveCardChanged(!saveCard),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: saveCard,
+                          onChanged: onSaveCardChanged,
+                          activeColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.stackSm),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Allow Crave to save your card details securely',
+                            style: AppTextStyles.bodySm,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

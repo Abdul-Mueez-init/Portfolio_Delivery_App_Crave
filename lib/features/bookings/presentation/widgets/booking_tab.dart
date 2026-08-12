@@ -52,14 +52,25 @@ class BookingTab extends ConsumerWidget {
       context.push('${AppRoutes.bookingConfirmation}/$bookingId');
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.gutter,
-        AppSpacing.stackMd,
-        AppSpacing.gutter,
-        AppSpacing.stackLg,
-      ),
-      children: [
+    // FIX (shop detail scroll-lock bug): this used to be a bare ListView,
+    // an independent scroll position competing with the outer scroll
+    // area. See menu_tab.dart's matching fix + shop_detail_screen.dart
+    // for the full explanation — SliverOverlapInjector here consumes the
+    // pinned tab bar's reserved space from the header.
+    return CustomScrollView(
+      slivers: [
+        SliverOverlapInjector(
+          handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.gutter,
+            AppSpacing.stackMd,
+            AppSpacing.gutter,
+            AppSpacing.stackLg,
+          ),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
         Text('Book a Table', style: AppTextStyles.headlineLgMobile),
         const SizedBox(height: 4),
         Text('Reserve your spot at $shopName.', style: AppTextStyles.bodySm),
@@ -138,6 +149,9 @@ class BookingTab extends ConsumerWidget {
           label: 'Confirm Booking',
           isLoading: flow.isSubmitting,
           onPressed: flow.canConfirm ? handleConfirm : null,
+        ),
+            ]),
+          ),
         ),
       ],
     );

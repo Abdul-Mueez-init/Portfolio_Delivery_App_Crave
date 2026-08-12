@@ -3,6 +3,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/booking_model.dart';
 import '../models/time_slot_model.dart';
 
+/// Thrown by [BookingsRepository] when a booking RPC (`book_time_slot`/
+/// `cancel_booking`) returns data in a shape the client can't safely
+/// use — see [BookingsRepository.bookTimeSlot]'s doc comment for why
+/// this exists. `toString()` deliberately does NOT contain `SLOT_FULL`,
+/// so `booking_flow_provider.dart`'s message-matching for the real
+/// "someone else took the seat" case can't accidentally trigger on a
+/// plumbing bug instead.
+class BookingRpcException implements Exception {
+  BookingRpcException(this.rpcName, this.detail);
+  final String rpcName;
+  final String detail;
+
+  @override
+  String toString() => 'BookingRpcException($rpcName): $detail';
+}
+
 /// Follows the same pattern as ShopsRepository/AuthRepository: plain
 /// class wrapping SupabaseClient, throws on failure, client injected
 /// rather than reached for as a singleton inside methods.
@@ -36,6 +52,30 @@ class BookingsRepository {
   }
 
   /// Books a slot via the atomic `book_time_slot` RPC.
+  ///
+  /// HARDENED (booking crash fix): the previous version assumed the RPC
+  /// result was always either a `Map` or a `List` containing one, then
+  /// cast straight into `BookingModel.fromMap`. If the `book_time_slot`
+  /// function in Postgres doesn't exist yet, or its return shape doesn't
+  /// match what this client sends/expects (e.g. it was written to return
+  /// only the `time_slots` row per architecture.md §11's capacity-check
+  /// snippet, rather than the inserted `bookings` row this app actually
+  /// needs), `result` can come back as `null`, an empty list, or a shape
+  /// that doesn't have the keys `BookingModel.fromMap` requires — any of
+  /// which surfaces deep inside supabase_flutter/postgrest as exactly
+  /// the "Null check operator used on a null value" crash reported, with
+  /// no indication of which of those it actually was. This never trusts
+  /// the shape blindly again — every branch either returns a real
+  /// [BookingModel] or throws a [BookingRpcException] with a message
+  /// that says which assumption broke, so the next debugging pass (or
+  /// this fix batch's SQL migration) has an actual answer instead of a
+  /// null-check stack trace pointing at framework internals.
+  ///
+  /// See `fix_07_booking_rpcs_saved_addresses_payment_methods.sql` for
+  /// the matching `book_time_slot` function definition — it must accept
+  /// exactly `p_slot_id uuid, p_party_size int, p_customer_id uuid` and
+  /// return the full `bookings` row (not the `time_slots` row) for this
+  /// method to succeed.
   Future<BookingModel> bookTimeSlot({
     required String timeSlotId,
     required int partySize,
@@ -46,7 +86,7 @@ class BookingsRepository {
       throw StateError('bookTimeSlot called with no signed-in user.');
     }
 
-    final result = await _client.rpc(
+    final dynamic result = await _client.rpc(
       'book_time_slot',
       params: {
         'p_slot_id': timeSlotId,
@@ -55,27 +95,100 @@ class BookingsRepository {
       },
     );
 
-    final Map<String, dynamic> row = result is List
-        ? (result.first as Map<String, dynamic>)
-        : (result as Map<String, dynamic>);
-
-    return BookingModel.fromMap(row);
+    final row = _extractSingleRow(result, rpcName: 'book_time_slot');
+    return _parseBookingRow(row, rpcName: 'book_time_slot');
   }
 
   /// Cancels a booking via the matching `cancel_booking` RPC.
+  /// See [bookTimeSlot]'s doc comment — same hardening applies here.
   Future<BookingModel> cancelBooking(String bookingId) async {
-    final result = await _client.rpc(
+    final dynamic result = await _client.rpc(
       'cancel_booking',
       params: {
         'p_booking_id': bookingId,
       },
     );
 
-    final Map<String, dynamic> row = result is List
-        ? (result.first as Map<String, dynamic>)
-        : (result as Map<String, dynamic>);
+    final row = _extractSingleRow(result, rpcName: 'cancel_booking');
+    return _parseBookingRow(row, rpcName: 'cancel_booking');
+  }
 
-    return BookingModel.fromMap(row);
+  /// Pulls one row map out of an RPC result that could legitimately be a
+  /// `Map`, a `List<Map>` (Postgres functions returning `SETOF`/a single
+  /// composite row are sometimes wrapped in an array by postgrest-dart),
+  /// `null`, or an empty list. Throws a labeled [BookingRpcException]
+  /// instead of letting a bad cast/null-check bubble up unexplained.
+  Map<String, dynamic> _extractSingleRow(dynamic result,
+      {required String rpcName}) {
+    if (result == null) {
+      throw BookingRpcException(
+        rpcName,
+        'returned no data. Most likely the `$rpcName` Postgres function '
+        "either doesn't exist yet or raised without returning a row — "
+        'run the SQL migration and check the Supabase logs for the '
+        'underlying Postgres error.',
+      );
+    }
+    if (result is List) {
+      if (result.isEmpty) {
+        throw BookingRpcException(
+          rpcName,
+          'returned an empty list — the function ran but produced no '
+          'row (e.g. the capacity check filtered out the update). '
+          'Expected exactly one row.',
+        );
+      }
+      final first = result.first;
+      if (first is Map<String, dynamic>) return first;
+      throw BookingRpcException(
+        rpcName,
+        'returned a list whose first element was a ${first.runtimeType}, '
+        'not a row map.',
+      );
+    }
+    if (result is Map<String, dynamic>) return result;
+    throw BookingRpcException(
+      rpcName,
+      'returned a ${result.runtimeType}, not a row map or list of rows.',
+    );
+  }
+
+  /// [BookingModel.fromMap] requires `id`, `shop_id`, `customer_id`,
+  /// `time_slot_id`, `party_size`, `status`, `created_at` to all be
+  /// present with the right types. Checked explicitly here — with a
+  /// message naming the missing/mismatched key — rather than letting a
+  /// bad `map['...'] as String` cast fail deep inside the model with no
+  /// context on which field was the problem.
+  BookingModel _parseBookingRow(Map<String, dynamic> row,
+      {required String rpcName}) {
+    const requiredKeys = [
+      'id',
+      'shop_id',
+      'customer_id',
+      'time_slot_id',
+      'party_size',
+      'status',
+      'created_at',
+    ];
+    final missing = requiredKeys.where((k) => row[k] == null).toList();
+    if (missing.isNotEmpty) {
+      throw BookingRpcException(
+        rpcName,
+        'returned a row missing required field(s): ${missing.join(', ')}. '
+        'Got keys: ${row.keys.join(', ')}. This usually means the '
+        'function is returning the wrong table (e.g. `time_slots` '
+        'instead of `bookings`) — see the SQL migration.',
+      );
+    }
+    try {
+      return BookingModel.fromMap(row);
+    } catch (e) {
+      throw BookingRpcException(
+        rpcName,
+        'returned a row that failed to parse into a Booking: $e. '
+        'Row keys: ${row.keys.join(', ')}.',
+      );
+    }
   }
 
   /// Fetches one booking with its shop + time slot joined in, for the

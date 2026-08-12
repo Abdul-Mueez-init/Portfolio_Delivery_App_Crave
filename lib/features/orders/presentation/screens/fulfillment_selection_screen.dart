@@ -484,7 +484,20 @@ class _DeliveryAddressFieldState extends State<_DeliveryAddressField> {
 /// even after Phase G landed real GPS. Non-interactive (gestures off)
 /// since it's a small preview inside a scrolling ListView; a
 /// full-interactive map is a bigger change than this fix batch.
-class _MapPreview extends StatelessWidget {
+///
+/// FIX (map doesn't pin the real location): the marker itself was
+/// always correct — a fresh `Marker` at `point` is passed on every
+/// rebuild. The bug was the *camera*: `initialCameraPosition` is a
+/// one-time construction argument, read only the instant the native
+/// GoogleMap view is created (typically on the very first build, before
+/// GPS has even returned). When the real fix lands afterwards and this
+/// widget rebuilds with a new `point`, the marker moves but the camera
+/// never does, so the pin can end up off-screen. Converting this to a
+/// StatefulWidget holding a GoogleMapController and explicitly calling
+/// `animateCamera` whenever `point` changes fixes that — the camera now
+/// follows every fix (GPS or the shop fallback) exactly like the
+/// marker already did.
+class _MapPreview extends StatefulWidget {
   const _MapPreview({
     required this.latitude,
     required this.longitude,
@@ -500,8 +513,46 @@ class _MapPreview extends StatelessWidget {
   final bool hasRealFix;
 
   @override
+  State<_MapPreview> createState() => _MapPreviewState();
+}
+
+class _MapPreviewState extends State<_MapPreview> {
+  GoogleMapController? _controller;
+
+  LatLng? get _point => (widget.latitude == null || widget.longitude == null)
+      ? null
+      : LatLng(widget.latitude!, widget.longitude!);
+
+  @override
+  void didUpdateWidget(covariant _MapPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldPoint = (oldWidget.latitude == null || oldWidget.longitude == null)
+        ? null
+        : LatLng(oldWidget.latitude!, oldWidget.longitude!);
+    final newPoint = _point;
+    if (newPoint != null && newPoint != oldPoint) {
+      _animateTo(newPoint);
+    }
+  }
+
+  Future<void> _animateTo(LatLng point) async {
+    final controller = _controller;
+    if (controller == null) return; // map not created yet — onMapCreated
+    // handles the very first frame's centering instead.
+    await controller.animateCamera(CameraUpdate.newLatLng(point));
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (latitude == null || longitude == null) {
+    final point = _point;
+
+    if (point == null) {
       // No shop lat/lng and no GPS fix yet — nothing to center on.
       return Container(
         height: 180,
@@ -522,8 +573,6 @@ class _MapPreview extends StatelessWidget {
       );
     }
 
-    final point = LatLng(latitude!, longitude!);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -534,6 +583,15 @@ class _MapPreview extends StatelessWidget {
             width: double.infinity,
             child: GoogleMap(
               initialCameraPosition: CameraPosition(target: point, zoom: 15),
+              onMapCreated: (controller) {
+                _controller = controller;
+                // Covers the case where a GPS fix already landed before
+                // the native map finished creating (e.g. it was fast, or
+                // this widget was rebuilt with a new point right as the
+                // map view attached) — snap to the current point once
+                // the controller is actually usable.
+                _animateTo(point);
+              },
               markers: {
                 Marker(
                     markerId: const MarkerId('delivery_point'),
@@ -546,11 +604,18 @@ class _MapPreview extends StatelessWidget {
               rotateGesturesEnabled: false,
               tiltGesturesEnabled: false,
               myLocationButtonEnabled: false,
-              liteModeEnabled: true,
+              // FIX: liteModeEnabled (Android only) renders a static
+              // bitmap snapshot taken once at creation — its camera
+              // can't be moved afterwards, which is *why* the pin never
+              // followed a GPS fix that landed after the map was first
+              // drawn, on top of the initialCameraPosition issue above.
+              // A real (non-lite) map with gestures off gives the same
+              // "preview, not interactive" feel while still letting
+              // animateCamera actually move it.
             ),
           ),
         ),
-        if (hasRealFix) ...[
+        if (widget.hasRealFix) ...[
           const SizedBox(height: 4),
           Text(
             'Showing your current location',

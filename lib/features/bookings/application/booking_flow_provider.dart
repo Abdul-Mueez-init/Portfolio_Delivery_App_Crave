@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/time_slot_model.dart';
@@ -109,12 +110,22 @@ class BookingFlowNotifier extends StateNotifier<BookingFlowState> {
       );
       state = state.copyWith(isSubmitting: false);
       return booking.id;
-    } catch (e) {
+    } catch (e, st) {
+      // Always logged, even though the user only ever sees the friendly
+      // message below — this is what actually told us the previous
+      // "Null check operator used on a null value" crash traced back to
+      // the RPC's return shape, not the Dart booking code itself. Keep
+      // this print (or route it to real crash reporting later per
+      // PLAN.md Phase 10) so a fresh failure is diagnosable from a
+      // device log instead of guessing again.
+      debugPrint('BookingFlowNotifier.confirmBooking failed: $e\n$st');
+
       // The RPC raises a `SLOT_FULL: ...` message specifically when
       // someone else took the last seats first — the real concurrent-
       // booking race ERD.md §3 calls out. Surface that distinctly;
       // fall back to a generic message for anything else (network
-      // blip, RLS issue, etc.).
+      // blip, RLS issue, the RPC not existing/returning the wrong
+      // shape — see BookingRpcException in bookings_repository.dart).
       final raw = e.toString();
       final message = raw.contains('SLOT_FULL')
           ? 'That slot just filled up. Please pick another time.'

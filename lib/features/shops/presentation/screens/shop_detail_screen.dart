@@ -74,97 +74,125 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
     final shop = widget.shop;
     final hasBookingTab = shop.acceptsBooking;
 
+    // FIX (scroll-lock bug): the old layout ran an outer CustomScrollView
+    // (cover photo + info card + tab bar) AND an inner ListView per tab
+    // (MenuTab/BookingTab), stacked via SliverFillRemaining. Those were
+    // two completely independent scroll positions — scrolling one never
+    // told the other it had reached its end, which is exactly why the
+    // screen appeared to "lock": you were actually still scrolling the
+    // *inner* list after the *outer* one had already hit its bound (or
+    // vice versa), so trying to scroll back up did nothing until you
+    // found the specific scrollable that still had room to move.
+    //
+    // NestedScrollView is the framework-supported fix for precisely this
+    // shape (header + TabBarView, single physics): it owns ONE outer
+    // scroll position and hands inner scrollables (MenuTab/BookingTab,
+    // now CustomScrollViews themselves) a shared, coordinated controller
+    // via PrimaryScrollController. Scrolling from either the header area
+    // or the list now drives the same position, so it always scrolls
+    // smoothly back to the top exactly as far as it scrolled down.
     return Stack(
       children: [
-        CustomScrollView(
-          slivers: [
-            // FIX: _CoverImage and the overlapping _ShopInfoCard live in
-            // ONE sliver (avoids the old cross-sliver clipping bug, where
-            // a Transform reaching into the previous sliver got clipped
-            // at the sliver boundary and swallowed the top of the card).
-            //
-            // The overlap itself is done WITHOUT any negative EdgeInsets
-            // or margin. `Padding`'s render object (RenderPadding, in
-            // shifted_box.dart) has the exact same `padding.isNonNegative`
-            // assertion as Container's margin — a negative EdgeInsets
-            // throws at runtime either way, it just wasn't hit until the
-            // first frame that actually laid this screen out.
-            //
-            // Instead: a Stack reserves only (coverHeight - _kCardOverlap)
-            // of layout space via a plain SizedBox (a real, non-negative
-            // height), while the actual cover image is Positioned on top
-            // of it at full height with clipBehavior: Clip.none, so it
-            // paints _kCardOverlap px past the Stack's reserved box. The
-            // card, as the next Column child, then starts right where
-            // that reserved box ends and — being painted after, i.e. on
-            // top — visually covers that overflowing strip of the image.
-            // Net effect: identical overlap look, non-negative sizes only.
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const SizedBox(
-                          height: _kCoverImageHeight - _kCardOverlap),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: _CoverImage(shop: shop),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.gutter),
-                    child: _ShopInfoCard(shop: shop),
-                  ),
-                ],
-              ),
-            ),
-            if (hasBookingTab)
+        NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              // FIX: _CoverImage and the overlapping _ShopInfoCard live in
+              // ONE sliver (avoids the old cross-sliver clipping bug, where
+              // a Transform reaching into the previous sliver got clipped
+              // at the sliver boundary and swallowed the top of the card).
+              //
+              // The overlap itself is done WITHOUT any negative EdgeInsets
+              // or margin. `Padding`'s render object (RenderPadding, in
+              // shifted_box.dart) has the exact same `padding.isNonNegative`
+              // assertion as Container's margin — a negative EdgeInsets
+              // throws at runtime either way, it just wasn't hit until the
+              // first frame that actually laid this screen out.
+              //
+              // Instead: a Stack reserves only (coverHeight - _kCardOverlap)
+              // of layout space via a plain SizedBox (a real, non-negative
+              // height), while the actual cover image is Positioned on top
+              // of it at full height with clipBehavior: Clip.none, so it
+              // paints _kCardOverlap px past the Stack's reserved box. The
+              // card, as the next Column child, then starts right where
+              // that reserved box ends and — being painted after, i.e. on
+              // top — visually covers that overflowing strip of the image.
+              // Net effect: identical overlap look, non-negative sizes only.
               SliverToBoxAdapter(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: AppColors.primaryContainer,
-                    unselectedLabelColor: AppColors.secondary,
-                    indicatorColor: AppColors.primaryContainer,
-                    indicatorSize: TabBarIndicatorSize.label,
-                    labelStyle: AppTextStyles.headlineMd,
-                    unselectedLabelStyle: AppTextStyles.headlineMd,
-                    tabs: const [
-                      Tab(
-                        icon: Icon(Icons.restaurant_menu_rounded, size: 20),
-                        text: 'Order',
-                        iconMargin: EdgeInsets.only(bottom: 4),
-                      ),
-                      Tab(
-                        icon: Icon(Icons.event_seat_rounded, size: 20),
-                        text: 'Book a Table',
-                        iconMargin: EdgeInsets.only(bottom: 4),
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const SizedBox(
+                            height: _kCoverImageHeight - _kCardOverlap),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: _CoverImage(shop: shop),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.gutter),
+                      child: _ShopInfoCard(shop: shop),
+                    ),
+                    if (hasBookingTab)
+                      const SizedBox(height: AppSpacing.stackSm),
+                  ],
                 ),
               ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: hasBookingTab
-                  ? TabBarView(
-                      controller: _tabController,
-                      children: [
-                        MenuTab(shopId: shop.id),
-                        BookingTab(shopId: shop.id, shopName: shop.name),
-                      ],
-                    )
-                  : MenuTab(shopId: shop.id),
-            ),
-          ],
+              // The tab bar is the one piece of "header" that should stay
+              // pinned once you scroll into the list — SliverOverlapAbsorber
+              // records how much space it occupies so MenuTab/BookingTab's
+              // own CustomScrollView (via SliverOverlapInjector) can pad
+              // around it correctly instead of the first item starting
+              // hidden underneath it.
+              if (hasBookingTab)
+                SliverOverlapAbsorber(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  sliver: SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _TabBarHeaderDelegate(
+                      tabBar: TabBar(
+                        controller: _tabController,
+                        labelColor: AppColors.primaryContainer,
+                        unselectedLabelColor: AppColors.secondary,
+                        indicatorColor: AppColors.primaryContainer,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        labelStyle: AppTextStyles.headlineMd,
+                        unselectedLabelStyle: AppTextStyles.headlineMd,
+                        tabs: const [
+                          Tab(
+                            icon:
+                                Icon(Icons.restaurant_menu_rounded, size: 20),
+                            text: 'Order',
+                            iconMargin: EdgeInsets.only(bottom: 4),
+                          ),
+                          Tab(
+                            icon: Icon(Icons.event_seat_rounded, size: 20),
+                            text: 'Book a Table',
+                            iconMargin: EdgeInsets.only(bottom: 4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ];
+          },
+          body: hasBookingTab
+              ? TabBarView(
+                  controller: _tabController,
+                  children: [
+                    MenuTab(shopId: shop.id),
+                    BookingTab(shopId: shop.id, shopName: shop.name),
+                  ],
+                )
+              : MenuTab(shopId: shop.id),
         ),
         // Back button floats over the cover photo — matches
         // shop_detail_updated's mobile back-button treatment.
@@ -185,6 +213,39 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
         ),
       ],
     );
+  }
+}
+
+/// Wraps the shop's Order/Book-a-Table [TabBar] as a pinned sliver header
+/// inside [NestedScrollView.headerSliverBuilder]. Keeping this tiny and
+/// dedicated (rather than reaching for a generic helper) matches
+/// menu_tab.dart/booking_tab.dart's "one clear owner per sliver" pattern.
+class _TabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _TabBarHeaderDelegate({required this.tabBar});
+
+  final TabBar tabBar;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ColoredBox(
+      color: AppColors.background,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+        child: tabBar,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _TabBarHeaderDelegate oldDelegate) {
+    return oldDelegate.tabBar != tabBar;
   }
 }
 

@@ -29,6 +29,8 @@ import '../../features/shops/presentation/screens/shop_settings_screen.dart';
 import '../../features/shops/presentation/screens/dashboard_home_screen.dart';
 import '../../features/shops/presentation/screens/menu_management_screen.dart';
 import '../../features/shops/presentation/screens/menu_item_form_screen.dart';
+import '../../features/addresses/presentation/screens/saved_addresses_screen.dart';
+import '../../features/payments/presentation/screens/payment_methods_screen.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
@@ -47,6 +49,8 @@ abstract class AppRoutes {
   static const activity = '/activity';
   static const profile = '/profile';
   static const settings = '/settings';
+  static const savedAddresses = '/profile/saved-addresses';
+  static const paymentMethods = '/profile/payment-methods';
   static const ownerDashboard = '/owner/dashboard';
   static const shopOnboarding = '/owner/shop-onboarding';
   static const ownerOrderQueue = '/owner/orders';
@@ -166,6 +170,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.savedAddresses,
+        builder: (context, state) => const SavedAddressesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.paymentMethods,
+        builder: (context, state) => const PaymentMethodsScreen(),
       ),
       // --- Owner routes ---
       GoRoute(
