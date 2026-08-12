@@ -130,19 +130,45 @@ class OrdersRepository {
   }
 
   /// Realtime order tracking — architecture.md §4: subscribes to
-  /// Postgres changes on `orders` filtered by `id`. Emits the full
-  /// joined order (re-fetched, not the raw changed row) on the initial
-  /// snapshot and every change after, so the UI never merges partial
-  /// data — matches rules.md §6's "always visible, never silently
-  /// stale" requirement.
+  /// Postgres changes on `orders` filtered by `id`.
+  ///
+  /// PERFORMANCE FIX (was: full re-fetch-with-joins on every event):
+  /// supabase_flutter's `.stream()` already hands back the current raw
+  /// `orders` row on every change — the previous version discarded that
+  /// payload (`await for (final _ in changes)`) and paid for a full
+  /// joined re-fetch anyway, on every single status update. The joined
+  /// data (shop name/cover, order_items+menu_items) never changes after
+  /// an order is created (rules.md §5: order_items are a price
+  /// snapshot), so there's nothing to re-fetch — only scalar columns
+  /// like `status`/`updated_at` change. We merge the raw row onto the
+  /// cached joined model via OrderModel.copyWith instead, which is a
+  /// pure in-memory operation, zero extra network round trips, and
+  /// still satisfies rules.md §6 (status always live, never stale)
+  /// since every real change still reaches the UI immediately.
   Stream<OrderModel> watchOrder(String orderId) async* {
-    yield await fetchOrderById(orderId);
+    OrderModel current = await fetchOrderById(orderId);
+    yield current;
 
     final changes =
         _client.from('orders').stream(primaryKey: ['id']).eq('id', orderId);
 
-    await for (final _ in changes) {
-      yield await fetchOrderById(orderId);
+    await for (final rows in changes) {
+      if (rows.isEmpty)
+        continue; // order no longer matches; keep last known state
+      final raw = OrderModel.fromMap(rows.first);
+      current = current.copyWith(
+        fulfillmentType: raw.fulfillmentType,
+        status: raw.status,
+        subtotal: raw.subtotal,
+        deliveryFee: raw.deliveryFee,
+        total: raw.total,
+        paymentStatus: raw.paymentStatus,
+        updatedAt: raw.updatedAt,
+        deliveryAddress: raw.deliveryAddress,
+        deliveryLat: raw.deliveryLat,
+        deliveryLng: raw.deliveryLng,
+      );
+      yield current;
     }
   }
 
@@ -184,18 +210,81 @@ class OrdersRepository {
         .toList();
   }
 
-  /// Realtime Order Queue — architecture.md §4, same re-fetch-on-change
-  /// pattern as watchOrder (never merges partial payloads), filtered by
-  /// shop_id instead of id.
+  /// Realtime Order Queue — architecture.md §4.
+  ///
+  /// PERFORMANCE FIX (was: re-fetched the WHOLE shop's order list, with
+  /// joins on order_items+menu_items+users, on every single Realtime
+  /// event — the highest-impact instance of this pattern in the app,
+  /// since Order Queue is the owner's main screen and any one order's
+  /// status change re-ran that query for every order the shop has).
+  /// Same fix shape as watchOrder: `.stream()` already hands back the
+  /// current raw row set matching the filter on every emission — we
+  /// reconcile that against an in-memory cache instead of discarding it:
+  ///   - an id already in the cache -> merge scalar fields in-memory,
+  ///     no network call.
+  ///   - an id not yet in the cache (a genuinely new order just landed)
+  ///     -> fetch joins for THAT ONE row only, not the whole list.
+  /// Net effect: a status update anywhere in the shop costs zero extra
+  /// queries; only a brand-new incoming order costs one single-row
+  /// joined fetch instead of a whole-list one.
   Stream<List<OrderModel>> watchShopOrders(String shopId) async* {
-    yield await fetchShopOrders(shopId);
+    final initial = await fetchShopOrders(shopId);
+    final cache = <String, OrderModel>{for (final o in initial) o.id: o};
+    yield _sortedByCreatedAtDesc(cache);
 
     final changes =
         _client.from('orders').stream(primaryKey: ['id']).eq('shop_id', shopId);
 
-    await for (final _ in changes) {
-      yield await fetchShopOrders(shopId);
+    await for (final rows in changes) {
+      final incomingIds = <String>{};
+      for (final rawRow in rows) {
+        final raw = OrderModel.fromMap(rawRow);
+        incomingIds.add(raw.id);
+        final existing = cache[raw.id];
+        if (existing == null) {
+          // New order this cache hasn't seen — needs the join fetch for
+          // item lines + customer name, but only for this one row.
+          cache[raw.id] = await _fetchSingleShopOrder(raw.id);
+        } else {
+          cache[raw.id] = existing.copyWith(
+            fulfillmentType: raw.fulfillmentType,
+            status: raw.status,
+            subtotal: raw.subtotal,
+            deliveryFee: raw.deliveryFee,
+            total: raw.total,
+            paymentStatus: raw.paymentStatus,
+            updatedAt: raw.updatedAt,
+            deliveryAddress: raw.deliveryAddress,
+            deliveryLat: raw.deliveryLat,
+            deliveryLng: raw.deliveryLng,
+          );
+        }
+      }
+      // Defensive only — orders are never deleted (rules.md §5's same
+      // "never delete, only deactivate" spirit applies here), so this
+      // just guards against the filter no longer matching a cached row.
+      cache.removeWhere((id, _) => !incomingIds.contains(id));
+      yield _sortedByCreatedAtDesc(cache);
     }
+  }
+
+  /// Single-row equivalent of [fetchShopOrders]'s joined select, used by
+  /// [watchShopOrders] so a brand-new order only costs a one-row fetch
+  /// instead of re-fetching every order the shop has.
+  Future<OrderModel> _fetchSingleShopOrder(String orderId) async {
+    final row = await _client
+        .from('orders')
+        .select(
+            '*, order_items(*, menu_items(name, image_url)), users!customer_id(full_name)')
+        .eq('id', orderId)
+        .single();
+    return OrderModel.fromJoinedMap(row);
+  }
+
+  List<OrderModel> _sortedByCreatedAtDesc(Map<String, OrderModel> cache) {
+    final list = cache.values.toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
   /// Owner's Accept action — rules.md §2: placed -> confirmed. Scoped

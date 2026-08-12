@@ -230,6 +230,10 @@ class _ImageWithCloseButton extends StatelessWidget {
                 : CachedNetworkImage(
                     imageUrl: item.imageUrl,
                     fit: BoxFit.cover,
+                    // Decode near the actual display size (2x for device
+                    // pixel ratio) instead of the full source resolution.
+                    memCacheWidth: 800,
+                    memCacheHeight: 480,
                     placeholder: (context, url) =>
                         Container(color: AppColors.surfaceContainerHigh),
                     errorWidget: (context, url, error) =>

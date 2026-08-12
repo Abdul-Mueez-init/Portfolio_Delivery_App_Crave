@@ -113,21 +113,27 @@ class _OrderQueueBody extends ConsumerWidget {
                 title: 'New',
                 count: newOrders.length,
                 color: AppColors.error,
-                children: newOrders.map((o) => _OrderCard(order: o)).toList(),
+                children: newOrders
+                    .map((o) => _OrderCard(key: ValueKey(o.id), order: o))
+                    .toList(),
               ),
             if (preparing.isNotEmpty)
               _StatusSection(
                 title: 'Preparing',
                 count: preparing.length,
                 color: AppColors.warning,
-                children: preparing.map((o) => _OrderCard(order: o)).toList(),
+                children: preparing
+                    .map((o) => _OrderCard(key: ValueKey(o.id), order: o))
+                    .toList(),
               ),
             if (ready.isNotEmpty)
               _StatusSection(
                 title: 'Ready',
                 count: ready.length,
                 color: AppColors.success,
-                children: ready.map((o) => _OrderCard(order: o)).toList(),
+                children: ready
+                    .map((o) => _OrderCard(key: ValueKey(o.id), order: o))
+                    .toList(),
               ),
           ],
         );
@@ -178,7 +184,7 @@ class _StatusSection extends StatelessWidget {
 }
 
 class _OrderCard extends ConsumerStatefulWidget {
-  const _OrderCard({required this.order});
+  const _OrderCard({super.key, required this.order});
   final OrderModel order;
 
   @override

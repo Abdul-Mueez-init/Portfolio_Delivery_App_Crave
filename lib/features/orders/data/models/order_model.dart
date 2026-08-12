@@ -183,6 +183,51 @@ class OrderModel {
   /// (OrdersRepository.fetchOrderById) — 0 on a bare OrderModel.fromMap.
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
 
+  /// Used by OrdersRepository's Realtime watchers (watchOrder /
+  /// watchShopOrders) to merge a bare, un-joined row update (from
+  /// `.stream()`'s raw payload) onto a cached *joined* OrderModel
+  /// without re-fetching — items/shopName/shopCoverImageUrl/customerName
+  /// are joined-only data that don't change after order creation
+  /// (rules.md §5: order_items are a snapshot), so they're preserved
+  /// from [this] unless explicitly overridden.
+  OrderModel copyWith({
+    FulfillmentType? fulfillmentType,
+    OrderStatus? status,
+    double? subtotal,
+    double? deliveryFee,
+    double? total,
+    PaymentStatus? paymentStatus,
+    DateTime? updatedAt,
+    String? deliveryAddress,
+    double? deliveryLat,
+    double? deliveryLng,
+    List<OrderItemModel>? items,
+    String? shopName,
+    String? shopCoverImageUrl,
+    String? customerName,
+  }) {
+    return OrderModel(
+      id: id,
+      shopId: shopId,
+      customerId: customerId,
+      fulfillmentType: fulfillmentType ?? this.fulfillmentType,
+      status: status ?? this.status,
+      subtotal: subtotal ?? this.subtotal,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      total: total ?? this.total,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      deliveryLat: deliveryLat ?? this.deliveryLat,
+      deliveryLng: deliveryLng ?? this.deliveryLng,
+      items: items ?? this.items,
+      shopName: shopName ?? this.shopName,
+      shopCoverImageUrl: shopCoverImageUrl ?? this.shopCoverImageUrl,
+      customerName: customerName ?? this.customerName,
+    );
+  }
+
   factory OrderModel.fromMap(Map<String, dynamic> map) {
     return OrderModel(
       id: map['id'] as String,

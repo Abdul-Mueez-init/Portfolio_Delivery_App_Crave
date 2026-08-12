@@ -127,9 +127,17 @@ class _MenuItemCard extends ConsumerWidget {
         ? ref.read(cartProvider.notifier).quantityOf(item.id)
         : 0;
     final isAvailable = item.isAvailable;
+    // SCROLL-PERFORMANCE FIX: this card used to be wrapped top-to-bottom in
+    // `Opacity(opacity: isAvailable ? 1.0 : 0.5, child: <whole card>)` —
+    // same anti-pattern as shop_card.dart: an Opacity around a subtree that
+    // includes a BoxShadow and a CachedNetworkImage forces an offscreen
+    // composite of the entire card, every frame, for every unavailable
+    // item. Fixed the same way: dim only the image (small subtree) via
+    // Opacity, dim text/icons via color alpha (free to paint, no
+    // compositing), and isolate each card's paint with RepaintBoundary.
+    final dimAlpha = isAvailable ? 1.0 : 0.5;
 
-    return Opacity(
-      opacity: isAvailable ? 1.0 : 0.5,
+    return RepaintBoundary(
       child: Material(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -156,13 +164,22 @@ class _MenuItemCard extends ConsumerWidget {
                     height: 80,
                     child: item.imageUrl.isEmpty
                         ? Container(color: AppColors.surfaceContainerHigh)
-                        : CachedNetworkImage(
-                            imageUrl: item.imageUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                                color: AppColors.surfaceContainerHigh),
-                            errorWidget: (context, url, error) => Container(
-                                color: AppColors.surfaceContainerHigh),
+                        : Opacity(
+                            // Small, isolated subtree — just the image.
+                            opacity: dimAlpha,
+                            child: CachedNetworkImage(
+                              imageUrl: item.imageUrl,
+                              fit: BoxFit.cover,
+                              // Decode near the actual 80x80 display size
+                              // (2x for device pixel ratio) instead of the
+                              // full 500x500 source image.
+                              memCacheWidth: 160,
+                              memCacheHeight: 160,
+                              placeholder: (context, url) => Container(
+                                  color: AppColors.surfaceContainerHigh),
+                              errorWidget: (context, url, error) => Container(
+                                  color: AppColors.surfaceContainerHigh),
+                            ),
                           ),
                   ),
                 ),
@@ -172,19 +189,28 @@ class _MenuItemCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(item.name,
-                          style: AppTextStyles.headlineMd,
+                          style: AppTextStyles.headlineMd.copyWith(
+                            color: (AppTextStyles.headlineMd.color ??
+                                    AppColors.onSurface)
+                                .withValues(alpha: dimAlpha),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
                       Text(item.description,
-                          style: AppTextStyles.bodySm,
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: (AppTextStyles.bodySm.color ??
+                                    AppColors.onSurface)
+                                .withValues(alpha: dimAlpha),
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: AppSpacing.stackSm),
                       Text(
                         '\$${item.price.toStringAsFixed(2)}',
-                        style: AppTextStyles.headlineMd
-                            .copyWith(color: AppColors.primary),
+                        style: AppTextStyles.headlineMd.copyWith(
+                            color:
+                                AppColors.primary.withValues(alpha: dimAlpha)),
                       ),
                     ],
                   ),

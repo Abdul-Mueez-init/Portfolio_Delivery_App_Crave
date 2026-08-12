@@ -167,8 +167,7 @@ class _ShopDetailContentState extends State<_ShopDetailContent>
                         unselectedLabelStyle: AppTextStyles.headlineMd,
                         tabs: const [
                           Tab(
-                            icon:
-                                Icon(Icons.restaurant_menu_rounded, size: 20),
+                            icon: Icon(Icons.restaurant_menu_rounded, size: 20),
                             text: 'Order',
                             iconMargin: EdgeInsets.only(bottom: 4),
                           ),
@@ -269,6 +268,10 @@ class _CoverImage extends StatelessWidget {
                 : CachedNetworkImage(
                     imageUrl: shop.coverImageUrl,
                     fit: BoxFit.cover,
+                    // Decode near the actual display size (2x for device
+                    // pixel ratio) instead of the full source resolution.
+                    memCacheWidth: 800,
+                    memCacheHeight: 512,
                     placeholder: (context, url) =>
                         Container(color: AppColors.surfaceContainerHigh),
                     errorWidget: (context, url, error) =>

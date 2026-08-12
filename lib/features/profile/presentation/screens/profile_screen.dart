@@ -118,14 +118,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           _MenuItemData(
                             icon: Icons.location_on_outlined,
                             label: 'Saved Addresses',
-                            onTap: () =>
-                                context.push(AppRoutes.savedAddresses),
+                            onTap: () => context.push(AppRoutes.savedAddresses),
                           ),
                           _MenuItemData(
                             icon: Icons.credit_card_outlined,
                             label: 'Payment Methods',
-                            onTap: () =>
-                                context.push(AppRoutes.paymentMethods),
+                            onTap: () => context.push(AppRoutes.paymentMethods),
                           ),
                           _MenuItemData(
                             icon: Icons.receipt_long_outlined,
@@ -228,6 +226,10 @@ class _AvatarHeader extends StatelessWidget {
                       : CachedNetworkImage(
                           imageUrl: avatarUrl!,
                           fit: BoxFit.cover,
+                          // Decode near the 96x96 display size (2x for
+                          // device pixel ratio) instead of full source res.
+                          memCacheWidth: 192,
+                          memCacheHeight: 192,
                           placeholder: (context, url) => const Icon(
                               Icons.person,
                               size: 48,

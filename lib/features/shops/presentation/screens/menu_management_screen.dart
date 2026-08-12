@@ -236,6 +236,10 @@ class _MenuItemRowState extends ConsumerState<_MenuItemRow> {
                     imageUrl: item.imageUrl,
                     width: 56,
                     height: 56,
+                    // Decode near the 56x56 display size (2x for device
+                    // pixel ratio) instead of full source res.
+                    memCacheWidth: 112,
+                    memCacheHeight: 112,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                         width: 56,

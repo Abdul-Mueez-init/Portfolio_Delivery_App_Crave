@@ -4,7 +4,7 @@
          requested as a fallback if the user denies fine location. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
- 
+
     <!-- FIX: previously only declared in the debug/profile manifests
          (android/app/src/{debug,profile}/AndroidManifest.xml), which
          Flutter auto-injects for dev builds only. Without it here in
@@ -12,18 +12,18 @@
          Supabase, Google Maps tiles, and the new geocoding reverse
          lookup would all fail on a real release APK/Play build. -->
     <uses-permission android:name="android.permission.INTERNET"/>
- 
+
     <application
         android:label="crave"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- PLAN.md Phase 0 already calls for generating a Maps API key
-             restricted to this app's SHA-1 + package name. Paste that
-             real key here — this placeholder will not compile the Maps
-             SDK correctly and "Use current location" not working. -->
+        <!-- SECURITY FIX: key is no longer hardcoded here. It's injected
+             at build time via manifestPlaceholders in app/build.gradle.kts,
+             sourced from android/local.properties (gitignored, never
+             committed). See that file for how to set MAPS_API_KEY. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDon_mp5UvBOfuDPg2izkE9LIGdIsmqX90"/>
+            android:value="${MAPS_API_KEY}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -53,9 +53,9 @@
             android:value="2" />
     </application>
     <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/training/package-visibility?hl=en and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
- 
+
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
         <intent>
@@ -64,4 +64,3 @@
         </intent>
     </queries>
 </manifest>
- 
