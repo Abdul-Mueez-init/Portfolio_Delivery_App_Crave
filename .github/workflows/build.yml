@@ -26,6 +26,13 @@ jobs:
       - run: flutter pub get
       - run: flutter build apk --release
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: crave-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
   ios:
     name: Build iOS (no codesign)
     runs-on: macos-latest
@@ -46,9 +53,3 @@ jobs:
 
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: crave-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
