@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  android:
+    name: Build Android (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create placeholder .env
+        run: |
+          echo "SUPABASE_URL=https://placeholder.supabase.co" >> .env
+          echo "SUPABASE_ANON_KEY=placeholder_anon_key" >> .env
+
+      - run: flutter pub get
+      - run: flutter build apk --release
+
+  ios:
+    name: Build iOS (no codesign)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create placeholder .env
+        run: |
+          echo "SUPABASE_URL=https://placeholder.supabase.co" >> .env
+          echo "SUPABASE_ANON_KEY=placeholder_anon_key" >> .env
+
+      - name: Create placeholder Maps API key config
+        run: echo "GOOGLE_MAPS_API_KEY = placeholder_maps_key" > ios/Flutter/ApiKeys.xcconfig
+
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: crave-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30

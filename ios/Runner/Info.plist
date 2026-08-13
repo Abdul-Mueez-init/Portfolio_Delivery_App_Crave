@@ -24,8 +24,18 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>GMSApiKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Crave needs camera access so shop owners can take photos for menu items and shop covers.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Crave uses your location to fill in your delivery address and show nearby shops on the map.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Crave saves photos you take for menu items to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Crave needs photo library access so shop owners can pick photos for menu items and shop covers.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

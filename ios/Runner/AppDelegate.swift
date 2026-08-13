@@ -1,4 +1,6 @@
+
 import Flutter
+import GoogleMaps
 import UIKit
 
 @main
@@ -7,6 +9,14 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // SECURITY: key is never hardcoded here. It's read from Info.plist's
+    // GMSApiKey entry, which pulls from GOOGLE_MAPS_API_KEY in
+    // ios/Flutter/ApiKeys.xcconfig (gitignored, never committed) —
+    // mirrors the same local.properties pattern used on the Android side.
+    if let apiKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
+       !apiKey.isEmpty {
+      GMSServices.provideAPIKey(apiKey)
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

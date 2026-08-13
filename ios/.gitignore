@@ -6,6 +6,7 @@
 *.perspectivev3
 **/*sync/
 .sconsign.dblite
+ApiKeys.xcconfig
 .tags*
 **/.vagrant/
 **/DerivedData/

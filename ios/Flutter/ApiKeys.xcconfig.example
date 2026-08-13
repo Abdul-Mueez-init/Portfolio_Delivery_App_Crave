@@ -1,0 +1,5 @@
+// Copy this file to ApiKeys.xcconfig (same folder) and fill in your real key.
+// ApiKeys.xcconfig is gitignored — never commit your real Maps key.
+// This mirrors android/local.properties on the Android side.
+
+GOOGLE_MAPS_API_KEY = AIzaSyDon_mp5UvBOfuDPg2izkE9LIGdIsmqX90
