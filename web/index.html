@@ -31,6 +31,18 @@
 
   <title>crave</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Google Maps JS API — required for google_maps_flutter to render on
+    web (it doesn't need this on Android/iOS, those use native SDKs).
+    Replace YOUR_WEB_MAPS_API_KEY with a browser-restricted key from
+    Google Cloud Console (Maps JavaScript API enabled). Do NOT reuse
+    your Android/iOS key as-is — create a separate one restricted to
+    your Netlify domain, since this key is publicly visible in page
+    source on the web (that's normal/expected for Maps JS, but only
+    if it's restricted).
+  -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDon_mp5UvBOfuDPg2izkE9LIGdIsmqX90" defer></script>
 </head>
 <body>
   <!--

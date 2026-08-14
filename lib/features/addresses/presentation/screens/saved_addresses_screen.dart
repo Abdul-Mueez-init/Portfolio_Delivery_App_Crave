@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
@@ -273,20 +274,26 @@ class _AddAddressSheetState extends ConsumerState<_AddAddressSheet> {
         ),
       );
 
-      String resolved =
-          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
-      try {
-        final placemarks = await _geocoder.placemarkFromCoordinates(
-            position.latitude, position.longitude);
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          final parts = [p.street, p.subLocality, p.locality, p.administrativeArea]
-              .where((s) => s != null && s.trim().isNotEmpty)
-              .toList();
-          if (parts.isNotEmpty) resolved = parts.join(', ');
+      // `geocoding` has no web implementation — skip the call on web
+      // and show a clean label instead of raw lat/lng. Mobile keeps
+      // the real reverse-geocoded address, unchanged.
+      String resolved = kIsWeb
+          ? 'Current location (GPS)'
+          : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      if (!kIsWeb) {
+        try {
+          final placemarks = await _geocoder.placemarkFromCoordinates(
+              position.latitude, position.longitude);
+          if (placemarks.isNotEmpty) {
+            final p = placemarks.first;
+            final parts = [p.street, p.subLocality, p.locality, p.administrativeArea]
+                .where((s) => s != null && s.trim().isNotEmpty)
+                .toList();
+            if (parts.isNotEmpty) resolved = parts.join(', ');
+          }
+        } catch (_) {
+          // Keep the coordinate fallback — not fatal.
         }
-      } catch (_) {
-        // Keep the coordinate fallback — not fatal.
       }
 
       setState(() {

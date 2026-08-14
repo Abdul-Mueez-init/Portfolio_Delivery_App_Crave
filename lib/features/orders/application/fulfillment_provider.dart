@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
@@ -198,27 +199,38 @@ class FulfillmentNotifier extends StateNotifier<FulfillmentState> {
       // geocoding itself fails or returns nothing — deliveryLat/Lng
       // are already captured either way, so checkout is never blocked
       // by a geocoding hiccup.
-      String resolvedAddress =
-          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
-      try {
-        final placemarks = await _geocoder.placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          final parts = [
-            p.street,
-            p.subLocality,
-            p.locality,
-            p.administrativeArea,
-          ].where((s) => s != null && s.trim().isNotEmpty).toList();
-          if (parts.isNotEmpty) {
-            resolvedAddress = parts.join(', ');
+      //
+      // `geocoding` has no web platform implementation — calling it
+      // there just throws and falls through to the coordinate
+      // fallback anyway, so on web we skip the call outright and go
+      // straight to a clean label instead of showing raw lat/lng in
+      // the address field. Mobile (Android/iOS) is untouched — it
+      // still gets the real reverse-geocoded street address.
+      String resolvedAddress = kIsWeb
+          ? 'Current location (GPS)'
+          : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+
+      if (!kIsWeb) {
+        try {
+          final placemarks = await _geocoder.placemarkFromCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+          if (placemarks.isNotEmpty) {
+            final p = placemarks.first;
+            final parts = [
+              p.street,
+              p.subLocality,
+              p.locality,
+              p.administrativeArea,
+            ].where((s) => s != null && s.trim().isNotEmpty).toList();
+            if (parts.isNotEmpty) {
+              resolvedAddress = parts.join(', ');
+            }
           }
+        } catch (_) {
+          // Keep the coordinate fallback above — not fatal.
         }
-      } catch (_) {
-        // Keep the coordinate fallback above — not fatal.
       }
 
       state = state.copyWith(
