@@ -1,0 +1,60 @@
+workflows:
+  android-apk:
+    name: Crave - Android APK
+    max_build_duration: 30
+    instance_type: linux_x2
+    environment:
+      groups:
+        - crave_secrets   # holds SUPABASE_URL, SUPABASE_ANON_KEY, MAPS_API_KEY — set these in Codemagic dashboard
+      flutter: stable
+    scripts:
+      - name: Write .env (flutter_dotenv reads this at runtime)
+        script: |
+          echo "SUPABASE_URL=$SUPABASE_URL" > .env
+          echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> .env
+
+      - name: Write android/local.properties (Maps key for AndroidManifest placeholder)
+        script: |
+          echo "MAPS_API_KEY=$MAPS_API_KEY" >> android/local.properties
+
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Build APK
+        script: flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/**/*.apk
+
+  ios-simulator:
+    name: Crave - iOS Simulator build
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - crave_secrets
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Write .env
+        script: |
+          echo "SUPABASE_URL=$SUPABASE_URL" > .env
+          echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> .env
+
+      - name: Write ios/Flutter/ApiKeys.xcconfig (Maps key for Info.plist substitution)
+        script: |
+          echo "GOOGLE_MAPS_API_KEY = $MAPS_API_KEY" > ios/Flutter/ApiKeys.xcconfig
+
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Install pods
+        script: |
+          cd ios && pod install
+
+      - name: Build for iOS Simulator (no signing needed)
+        script: flutter build ios --simulator --no-codesign
+
+    artifacts:
+      - build/ios/iphonesimulator/*.app
